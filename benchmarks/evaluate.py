@@ -178,7 +178,8 @@ def main() -> None:
     write(args.output / "predictions.frozen.json", predictions)
     # The complete prediction snapshot is now on disk. First private reference access follows.
     verify()
-    manifest = json.loads((OUTPUT / "delivery_manifest.json").read_text("utf-8"))
+    with zipfile.ZipFile(ARCHIVE) as archive:
+        manifest = json.loads(archive.read("manifest.json"))
     for name in ("gold.json", "queries.csv"):
         if sha256(OUTPUT / name) != manifest["files"][name]:
             raise ValueError(f"reference input checksum mismatch: {name}")

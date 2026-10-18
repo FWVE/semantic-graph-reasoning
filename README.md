@@ -35,12 +35,9 @@ output obligations are satisfied; unfinished runs return `unresolved`.
 | GPT 5.6 Luna | none | 323/450 (71.78%) | 432/450 |
 | Gemini 3.8 Flash | low | 433/450 (96.22%) | 450/450 |
 
-These are recorded main-framework experiments with their respective source
-snapshots. [Result metadata](framework/results/main450.json) and the accompanying
-per-query CSVs preserve the measurement protocol and resource accounting.
-Their native protocol compares anchor, node and original-edge sets; the evaluator
-provided here also preserves ordered-path identity. The packaged source has been
-checked locally and has not been rerun against model APIs.
+Recorded results, source snapshots and scoring protocols are available in
+[framework/results](framework/results), with a [summary](framework/results/summary.json)
+and per-query CSVs for each model.
 
 ## Installation Steps
 
@@ -59,68 +56,33 @@ Run all commands from the repository root:
 pip install -r requirements.txt
 ```
 
-### 3. Prepare SemGraph-Bench
-
-The benchmark includes 450 questions, 6,683 structural candidates, 1,844 reference
-answer structures, and 10 questions with empty reference answers. Each of the nine
-structural families contains 50 questions.
-
-| File | Content |
-| --- | --- |
-| [queries.csv](benchmarks/data/queries.csv) | Public input: `query_id`, `graph_domain`, `query`, `anchor_node_ids` |
-| [gold.json](benchmarks/data/gold.json) | Complete reference answers |
-| [sources.json](benchmarks/sources.json) | Source graph revisions, paths and checksums |
-| [semgraph_bench_450.zip](benchmarks/data/semgraph_bench_450.zip) | Frozen resources and annotation evidence |
+SemGraph-Bench is included in [benchmarks/data](benchmarks/data): `queries.csv`
+contains the public questions, `gold.json` contains the reference answers, and
+`semgraph_bench_450.zip` contains the frozen resources and annotation evidence.
+There are 50 questions per structural family. Source graphs are downloaded separately:
 
 ```bash
 python benchmarks/verify.py
-python benchmarks/download.py
-python benchmarks/download.py --domains twitter --download
-python benchmarks/download.py --domains twitter --verify
+python benchmarks/download.py --domains reddit --download
+python benchmarks/download.py --domains reddit --verify
 ```
 
-Omit `--domains` to prepare all seven source graphs (6.18 GB). The downloader uses
-the pinned upstream revision and verifies file sizes and SHA256 values.
+This downloads Reddit for the example below. Omit `--domains` to download all seven
+graphs (6.18 GB). Revisions and checksums are recorded in [sources.json](benchmarks/sources.json).
+The graphs come from [TEG-DB](https://huggingface.co/datasets/ZhuofengLi/TEG-Datasets)
+and retain their upstream terms.
 
-The sources are Citation, Reddit, Twitter, Goodreads Children, Goodreads History,
-Goodreads Crime, and Amazon Movie from
-[TEG-DB](https://huggingface.co/datasets/ZhuofengLi/TEG-Datasets).
-Source text and excerpts retain their upstream terms; the software license does
-not relicense those datasets. Original annotation and audit records are included
-with the frozen evidence.
-
-### 4. Run the framework
-
-Set the selected provider credential in your environment or a local `.env` file:
-`OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY`. Optional provider
-endpoints are `OPENAI_BASE_URL` and `DEEPSEEK_BASE_URL`.
+Set the provider credential (`OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, or
+`OPENROUTER_API_KEY`) in your environment or a local `.env` file. Run and evaluate Q0001:
 
 ```bash
 python framework/run.py preflight
-python framework/run.py init --campaign framework/results/example --query-execution-limit 1 --acceptance-queries 1 --model gpt-5.6-terra --reasoning-effort high
+python framework/run.py init --campaign framework/results/example --query-execution-limit 1 --acceptance-queries 1 --model gpt-5.6-luna --reasoning-effort none
 python framework/run.py run --campaign framework/results/example --query-ids Q0001 --phase acceptance --allow-api
-python framework/run.py status --campaign framework/results/example
-```
-
-Download the graph named in each selected question before running it.
-`preflight` checks public inputs without loading reference answers or calling a
-model. `run --allow-api` executes the selected model. Use `--help` for model and
-budget options. Model settings and execution limits are fixed per campaign;
-failed attempts also consume an execution slot.
-
-### 5. Evaluate
-
-```bash
 python benchmarks/evaluate.py --campaign framework/results/example --phase acceptance --query-ids Q0001 --output framework/results/example-score
 ```
 
-Omit `--query-ids` to score all 450 questions. The evaluator selects the latest
-attempt for each question within the specified phase and freezes predictions
-before opening references. It reports complete answer-set exact match,
-precision/recall/F1, and invalid or duplicate answers. Missing and unresolved
-predictions count as incorrect, including on empty-reference questions.
-
-For external systems, use `--predictions predictions.json` instead of `--campaign`.
-The JSON maps each query ID to `{"status": "complete", "answers": [...]}`. Every
-answer includes integer `anchor_node_id`, `node_ids`, and original `edge_ids`; path answers
-also include ordered `path_node_ids`. A complete empty answer uses `"answers": []`.
+`preflight` runs locally; `run --allow-api` calls the selected model. Use `--help`
+for model, budget and input options. The evaluator reports complete answer-set
+exact match and precision/recall/F1. Omit `--query-ids` to score all 450 questions;
+missing or unresolved answers count as incorrect.

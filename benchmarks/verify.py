@@ -14,11 +14,15 @@ from reference import ARCHIVE, OUTPUT, ROOT, reference, resource_from_archive
 
 def verify(root: Path = ROOT) -> dict:
     output = root / OUTPUT.relative_to(ROOT)
-    manifest = json.loads((output / "delivery_manifest.json").read_text("utf-8"))
+    with zipfile.ZipFile(root / ARCHIVE.relative_to(ROOT)) as archive:
+        manifest = json.loads(archive.read("manifest.json"))
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256(archive.read(name)).hexdigest() != expected:
+                raise ValueError(f"archive checksum mismatch: {name}")
     if manifest["query_count"] != 450:
         raise ValueError("unexpected query count")
-    for name, expected in manifest["files"].items():
-        if sha256(output / name) != expected:
+    for name in ("queries.csv", "gold.json"):
+        if sha256(output / name) != manifest["files"][name]:
             raise ValueError(f"delivery checksum mismatch: {name}")
     with (output / "queries.csv").open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
@@ -39,7 +43,7 @@ def verify(root: Path = ROOT) -> dict:
     with zipfile.ZipFile(root / ARCHIVE.relative_to(ROOT)) as archive:
         if archive.testzip() is not None:
             raise ValueError("corrupt evidence archive")
-        for name in ("queries.csv", "gold.json", "audit.json"):
+        for name in ("queries.csv", "gold.json"):
             if archive.read(name) != (output / name).read_bytes():
                 raise ValueError(f"archive and consumer files differ: {name}")
         if archive.read("benchmarks/resources/sources.json") != (root / "benchmarks/sources.json").read_bytes():
