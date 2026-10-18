@@ -1,0 +1,34 @@
+{
+  "dataset": "TEG-DB Amazon-Movie",
+  "deserialized": false,
+  "download_scope": "processed_only",
+  "downloaded_at_utc": "2026-08-03T04:45:20.798204Z",
+  "embeddings_downloaded": false,
+  "files": [
+    {
+      "local_path": "source/README.md",
+      "sha256": "dac824c9fa058dc02c0851093879c34a3ba87433fd58d262f50d348cbe25b1ef",
+      "size_bytes": 1049,
+      "upstream_path": "README.md"
+    },
+    {
+      "local_path": "source/amazon_movie/movie.md",
+      "sha256": "f7d2374586b49f32a7f2ce11bbce634661498b403430f8270da7efc256151b98",
+      "size_bytes": 1286,
+      "upstream_path": "amazon_movie/movie.md"
+    },
+    {
+      "local_path": "source/amazon_movie/processed/movie.pkl",
+      "sha256": "871ecd8bb0352ac55b9ba4d40ec21e3f3b7853a87ee4183684589966e9cac6c9",
+      "size_bytes": 1945870917,
+      "upstream_path": "amazon_movie/processed/movie.pkl"
+    }
+  ],
+  "link_prediction_splits_downloaded": false,
+  "other_teg_datasets_downloaded": false,
+  "raw_inputs_downloaded": false,
+  "repo_id": "ZhuofengLi/TEG-Datasets",
+  "repo_type": "dataset",
+  "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+  "upstream_dataset_name": "amazon_movie"
+}

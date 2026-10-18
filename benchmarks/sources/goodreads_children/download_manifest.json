@@ -1,0 +1,34 @@
+{
+  "dataset": "TEG-DB Goodreads-Children",
+  "deserialized": false,
+  "download_scope": "goodreads_children_processed_only",
+  "downloaded_at_utc": "2026-07-22T04:16:22.916263Z",
+  "embeddings_downloaded": false,
+  "files": [
+    {
+      "local_path": "source/README.md",
+      "sha256": "dac824c9fa058dc02c0851093879c34a3ba87433fd58d262f50d348cbe25b1ef",
+      "size_bytes": 1049,
+      "upstream_path": "README.md"
+    },
+    {
+      "local_path": "source/goodreads_children/goodreads.md",
+      "sha256": "45c29298dad04f26bf345430e896c7466dc1667b1a87fe91c0fcfd741f6cc4f3",
+      "size_bytes": 1147,
+      "upstream_path": "goodreads_children/goodreads.md"
+    },
+    {
+      "local_path": "source/goodreads_children/processed/children.pkl",
+      "sha256": "242f5a016589c1a6a20caede8dbe002005f2a6d9cde33055c7c5a352fd1f9a3f",
+      "size_bytes": 413458662,
+      "upstream_path": "goodreads_children/processed/children.pkl"
+    }
+  ],
+  "link_prediction_splits_downloaded": false,
+  "other_teg_datasets_downloaded": false,
+  "raw_inputs_downloaded": false,
+  "repo_id": "ZhuofengLi/TEG-Datasets",
+  "repo_type": "dataset",
+  "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+  "upstream_dataset_name": "goodreads_children"
+}

@@ -1,0 +1,55 @@
+{
+  "benchmark": "SemGraph-Bench",
+  "protocol": "Reported native complete answer-set match using anchor, node and original-edge sets. The release evaluator additionally preserves ordered-path identity.",
+  "selection": "Fixed replacements for environmental failures; superseded failures excluded; semantic failures not selectively retried.",
+  "timing": "Per-query execution time, excluding graph loading.",
+  "source_snapshots": "Each row retains its own recorded source hash. These results are from completed main-framework runs, not a rerun of the packaged source.",
+  "public_queries_sha256": "745746653bef445732bb3d32f5b2f1af4c5baf30dd9670fb54a1c6ca6d264b12",
+  "results": [
+    {
+      "label": "DeepSeek Pro",
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "none",
+      "queries": 450,
+      "exact_matches": 338,
+      "accuracy": 0.7511111111111111,
+      "completed": 436,
+      "calls": 5583,
+      "total_tokens": 10165993,
+      "macro_f1": 0.7680755015593725,
+      "mean_seconds": 44.635031111110905,
+      "source_hash": "b4ecc9330500f4d29d14026c819a6f2d2f0d8451839a14a458c1bd59baa320dd",
+      "original_summary_sha256": "b5ca3c420fc107a5d3ba0bfae707de4d61f0ff75fd2064a5180a892a9980c680"
+    },
+    {
+      "label": "GPT Luna",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "none",
+      "queries": 450,
+      "exact_matches": 323,
+      "accuracy": 0.7177777777777777,
+      "completed": 432,
+      "calls": 6278,
+      "total_tokens": 7798091,
+      "macro_f1": 0.7588148148148148,
+      "mean_seconds": 34.101806666666945,
+      "source_hash": "b4ecc9330500f4d29d14026c819a6f2d2f0d8451839a14a458c1bd59baa320dd",
+      "original_summary_sha256": "e45a21ab65cd5e6392a9dac9bc5991231c2ddbf120e5ebe3261c9713fc8a7d8c"
+    },
+    {
+      "label": "Gemini 3.8 Flash",
+      "model": "google/gemini-3.8-flash",
+      "reasoning_effort": "low",
+      "queries": 450,
+      "exact_matches": 433,
+      "accuracy": 0.9622222222222222,
+      "completed": 450,
+      "calls": 4773,
+      "total_tokens": 4618880,
+      "macro_f1": 0.9833431457431457,
+      "mean_seconds": 27.413382222222197,
+      "source_hash": "642ead8e2ff63c6637837392cc90b0f3a0d45881a39a03229b20e2f7697567af",
+      "original_summary_sha256": "9d0c033b07d542083a52de46b7efedece7a159a0092ad81d840d56d62287cc63"
+    }
+  ]
+}

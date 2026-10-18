@@ -1,0 +1,302 @@
+{
+  "graph_sources": [
+    {
+      "graph_instance": "amazon_movie",
+      "manifest_path": "benchmarks/sources/amazon_movie/download_manifest.json",
+      "path": "benchmarks/sources/amazon_movie/source/amazon_movie/processed/movie.pkl",
+      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+      "sha256": "871ecd8bb0352ac55b9ba4d40ec21e3f3b7853a87ee4183684589966e9cac6c9",
+      "size_bytes": 1945870917,
+      "text_field_provenance": {
+        "edge_text": {
+          "evidence_dependency_group": "amazon_movie:review:{original_edge_id}:text_edges",
+          "field": "text_edges",
+          "provenance": "native",
+          "semantic_eligibility": "full_review_text_when_nonempty"
+        },
+        "generic_placeholder_values_by_kind": {
+          "item": [
+            "item"
+          ],
+          "user": [
+            "reviewer"
+          ]
+        },
+        "node_text_by_kind": {
+          "item": {
+            "evidence_dependency_group": "amazon_movie:item:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "full_text_unless_generic_placeholder"
+          },
+          "user": {
+            "evidence_dependency_group": "amazon_movie:user:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "generic_actor_identity_only"
+          }
+        },
+        "per_object_text_eligibility": {
+          "empty_string_is_ineligible": true,
+          "generic_placeholder_is_ineligible": true,
+          "no_regex_or_semantic_label_used": true,
+          "normalization": "strip_then_casefold_exact_equality"
+        },
+        "projection_summary": null
+      }
+    },
+    {
+      "graph_instance": "citation",
+      "manifest_path": "benchmarks/sources/citation/download_manifest.json",
+      "path": "benchmarks/sources/citation/source/arxiv/processed/arxiv.pkl",
+      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+      "sha256": "2c79dbeaf0b9bc1458c04d385c492742987cd02a08beda123387ca392cb27e59",
+      "size_bytes": 389843902,
+      "text_field_provenance": {
+        "edge_text": {
+          "evidence_dependency_group": "citation:citation:{original_edge_id}:text_edges",
+          "field": "text_edges",
+          "provenance": "native",
+          "semantic_eligibility": "full_text_when_nonempty"
+        },
+        "generic_placeholder_values_by_kind": {
+          "paper": []
+        },
+        "node_text_by_kind": {
+          "paper": {
+            "evidence_dependency_group": "citation:paper:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "full_text_when_nonempty"
+          }
+        },
+        "per_object_text_eligibility": {
+          "empty_string_is_ineligible": true,
+          "generic_placeholder_is_ineligible": true,
+          "no_regex_or_semantic_label_used": true,
+          "normalization": "strip_then_casefold_exact_equality"
+        },
+        "projection_summary": null
+      }
+    },
+    {
+      "graph_instance": "goodreads_children",
+      "manifest_path": "benchmarks/sources/goodreads_children/download_manifest.json",
+      "path": "benchmarks/sources/goodreads_children/source/goodreads_children/processed/children.pkl",
+      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+      "sha256": "242f5a016589c1a6a20caede8dbe002005f2a6d9cde33055c7c5a352fd1f9a3f",
+      "size_bytes": 413458662,
+      "text_field_provenance": {
+        "edge_text": {
+          "evidence_dependency_group": "goodreads_children:review:{original_edge_id}:text_edges",
+          "field": "text_edges",
+          "provenance": "native",
+          "semantic_eligibility": "full_review_text_when_nonempty"
+        },
+        "generic_placeholder_values_by_kind": {
+          "book": [],
+          "reader": [
+            "user"
+          ]
+        },
+        "node_text_by_kind": {
+          "book": {
+            "evidence_dependency_group": "goodreads_children:book:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "full_text_unless_generic_placeholder"
+          },
+          "reader": {
+            "evidence_dependency_group": "goodreads_children:reader:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "generic_actor_identity_only"
+          }
+        },
+        "per_object_text_eligibility": {
+          "empty_string_is_ineligible": true,
+          "generic_placeholder_is_ineligible": true,
+          "no_regex_or_semantic_label_used": true,
+          "normalization": "strip_then_casefold_exact_equality"
+        },
+        "projection_summary": null
+      }
+    },
+    {
+      "graph_instance": "goodreads_crime",
+      "manifest_path": "benchmarks/sources/goodreads_crime/download_manifest.json",
+      "path": "benchmarks/sources/goodreads_crime/source/goodreads_crime/processed/crime.pkl",
+      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+      "sha256": "2c3df926cb310376103f0cd85d8149695228b43a929b7703786afbce884f4359",
+      "size_bytes": 1473408362,
+      "text_field_provenance": {
+        "edge_text": {
+          "evidence_dependency_group": "goodreads_crime:review:{original_edge_id}:text_edges",
+          "field": "text_edges",
+          "provenance": "native",
+          "semantic_eligibility": "full_review_text_when_nonempty"
+        },
+        "generic_placeholder_values_by_kind": {
+          "book": [],
+          "reader": [
+            "user"
+          ]
+        },
+        "node_text_by_kind": {
+          "book": {
+            "evidence_dependency_group": "goodreads_crime:book:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "full_text_unless_generic_placeholder"
+          },
+          "reader": {
+            "evidence_dependency_group": "goodreads_crime:reader:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "generic_actor_identity_only"
+          }
+        },
+        "per_object_text_eligibility": {
+          "empty_string_is_ineligible": true,
+          "generic_placeholder_is_ineligible": true,
+          "no_regex_or_semantic_label_used": true,
+          "normalization": "strip_then_casefold_exact_equality"
+        },
+        "projection_summary": null
+      }
+    },
+    {
+      "graph_instance": "goodreads_history",
+      "manifest_path": "benchmarks/sources/goodreads_history/download_manifest.json",
+      "path": "benchmarks/sources/goodreads_history/source/goodreads_history/processed/history.pkl",
+      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+      "sha256": "efd9056a589cdbcf3b691c441e43dcf7c21e35d2bf907e85947b8daf298c6149",
+      "size_bytes": 1878300925,
+      "text_field_provenance": {
+        "edge_text": {
+          "evidence_dependency_group": "goodreads_history:review:{original_edge_id}:text_edges",
+          "field": "text_edges",
+          "provenance": "native",
+          "semantic_eligibility": "full_review_text_when_nonempty"
+        },
+        "generic_placeholder_values_by_kind": {
+          "book": [],
+          "reader": [
+            "user"
+          ]
+        },
+        "node_text_by_kind": {
+          "book": {
+            "evidence_dependency_group": "goodreads_history:book:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "full_text_unless_generic_placeholder"
+          },
+          "reader": {
+            "evidence_dependency_group": "goodreads_history:reader:{node_id}:text_nodes",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "generic_actor_identity_only"
+          }
+        },
+        "per_object_text_eligibility": {
+          "empty_string_is_ineligible": true,
+          "generic_placeholder_is_ineligible": true,
+          "no_regex_or_semantic_label_used": true,
+          "normalization": "strip_then_casefold_exact_equality"
+        },
+        "projection_summary": null
+      }
+    },
+    {
+      "graph_instance": "reddit",
+      "manifest_path": "benchmarks/sources/reddit/download_manifest.json",
+      "path": "benchmarks/sources/reddit/source/reddit/processed/reddit.pkl",
+      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+      "sha256": "298b871b7db735cae25c835f868fdfb9d976f113eee22e06fb14ce03167383d2",
+      "size_bytes": 68520870,
+      "text_field_provenance": {
+        "edge_text": {
+          "evidence_dependency_group": "reddit:post:{original_edge_id}:text_edges",
+          "field": "text_edges",
+          "provenance": "native",
+          "semantic_eligibility": "full_post_text_when_nonempty"
+        },
+        "generic_placeholder_values_by_kind": {
+          "subreddit": [],
+          "user": []
+        },
+        "node_text_by_kind": {
+          "subreddit": {
+            "evidence_dependency_group": "reddit:subreddit_name:{node_id}",
+            "field": "text_nodes_interleaved_endpoint_record",
+            "provenance": "projected",
+            "semantic_eligibility": "community_name_only_not_description"
+          },
+          "user": {
+            "evidence_dependency_group": "reddit:user_identity:{node_id}",
+            "field": "text_nodes_interleaved_endpoint_record",
+            "provenance": "derived",
+            "semantic_eligibility": "identity_name_only"
+          }
+        },
+        "per_object_text_eligibility": {
+          "empty_string_is_ineligible": true,
+          "generic_placeholder_is_ineligible": true,
+          "no_regex_or_semantic_label_used": true,
+          "normalization": "strip_then_casefold_exact_equality"
+        },
+        "projection_summary": "interleaved endpoint records -> one text per referenced node"
+      }
+    },
+    {
+      "graph_instance": "twitter",
+      "manifest_path": "benchmarks/sources/twitter/download_manifest.json",
+      "path": "benchmarks/sources/twitter/source/twitter/processed/twitter.pkl",
+      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+      "sha256": "73792b04968c3cb94930a8f84db6e99e96605816ea590d9171328af5e2ebd14a",
+      "size_bytes": 7971933,
+      "text_field_provenance": {
+        "edge_text": {
+          "dependency_note": "author-edge text and projected target tweet-node text are one evidence source",
+          "evidence_dependency_group": "twitter:tweet_content:{target_node_id}",
+          "field": "text_edges",
+          "provenance": "native",
+          "semantic_eligibility": "full_tweet_text"
+        },
+        "generic_placeholder_values_by_kind": {
+          "tweet": [
+            "tweet"
+          ],
+          "user": [
+            "user"
+          ]
+        },
+        "node_text_by_kind": {
+          "tweet": {
+            "evidence_dependency_group": "twitter:tweet_content:{node_id}",
+            "field": "text_edges_of_incoming_author_record",
+            "provenance": "projected",
+            "semantic_eligibility": "full_tweet_text_shared_with_author_edge"
+          },
+          "user": {
+            "evidence_dependency_group": "twitter:user_kind:{node_id}",
+            "field": "text_nodes",
+            "provenance": "native",
+            "semantic_eligibility": "generic_kind_only_no_independent_semantics"
+          }
+        },
+        "per_object_text_eligibility": {
+          "empty_string_is_ineligible": true,
+          "generic_placeholder_is_ineligible": true,
+          "no_regex_or_semantic_label_used": true,
+          "normalization": "strip_then_casefold_exact_equality"
+        },
+        "projection_summary": "identical incoming edge text -> target tweet text; user nodes retain only kind"
+      }
+    }
+  ],
+  "schema_version": 1,
+  "scope": "complete structural catalogs with original source IDs and full text",
+  "verification": "source provenance and local reader hashes; no raw graph re-enumeration in this cleanup"
+}

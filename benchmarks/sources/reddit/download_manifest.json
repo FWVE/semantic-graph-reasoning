@@ -1,0 +1,33 @@
+{
+  "dataset": "TEG-DB Reddit",
+  "deserialized": false,
+  "download_scope": "reddit_processed_only",
+  "downloaded_at_utc": "2026-07-21T16:29:00.030433Z",
+  "embeddings_downloaded": false,
+  "files": [
+    {
+      "local_path": "source/README.md",
+      "sha256": "dac824c9fa058dc02c0851093879c34a3ba87433fd58d262f50d348cbe25b1ef",
+      "size_bytes": 1049,
+      "upstream_path": "README.md"
+    },
+    {
+      "local_path": "source/reddit/reddit.md",
+      "sha256": "4b0a035c8dc0ea640d6c7083801093f8d9bf61edee8211178ae0e4d3183ea63b",
+      "size_bytes": 1029,
+      "upstream_path": "reddit/reddit.md"
+    },
+    {
+      "local_path": "source/reddit/processed/reddit.pkl",
+      "sha256": "298b871b7db735cae25c835f868fdfb9d976f113eee22e06fb14ce03167383d2",
+      "size_bytes": 68520870,
+      "upstream_path": "reddit/processed/reddit.pkl"
+    }
+  ],
+  "other_teg_datasets_downloaded": false,
+  "raw_inputs_downloaded": false,
+  "repo_id": "ZhuofengLi/TEG-Datasets",
+  "repo_type": "dataset",
+  "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
+  "upstream_dataset_name": "reddit"
+}
