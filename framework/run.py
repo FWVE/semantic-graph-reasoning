@@ -28,6 +28,7 @@ from semantic_graph_reasoning.agentic.provider import (
 from semantic_graph_reasoning.agentic.service import Solver
 from semantic_graph_reasoning.agentic.workspace import digest
 from semantic_graph_reasoning.data.benchmark import PUBLIC_CSV, SOURCES, load_graph, public_rows
+from semantic_graph_reasoning.scheduling import GreedySolver, StaticSolver
 
 
 def fingerprints() -> dict[str, str]:
@@ -66,7 +67,7 @@ CORE = Runtime()
 def initialize(args: argparse.Namespace, *, runtime: Runtime = CORE) -> dict[str, Any]:
     if not 1 <= args.acceptance_queries <= args.query_execution_limit:
         raise ValueError("acceptance count must be between one and the query cap")
-    model, effort = args.model or "gpt-5.6-terra", args.reasoning_effort or "high"
+    model, effort = args.model or "deepseek-v4-pro", args.reasoning_effort or "none"
     validate_model_effort(model, effort)
     args.campaign.mkdir(parents=True, exist_ok=False)
     protected = [PUBLIC_CSV, ROOT / "benchmarks/data/gold.json", SOURCES]
@@ -159,15 +160,16 @@ async def run(args: argparse.Namespace, *, guard: BatchGuard | None = None, runt
 def parser(commands: tuple[str, ...] = ("init", "preflight", "run", "status")) -> argparse.ArgumentParser:
     value = argparse.ArgumentParser(description=__doc__)
     value.add_argument("command", choices=commands)
-    value.add_argument("--campaign", type=Path, default=ROOT / "artifacts/framework/work/agentic_450_terra_high")
+    value.add_argument("--strategy", choices=["full", "static", "greedy"], default="full")
+    value.add_argument("--campaign", type=Path, default=ROOT / "artifacts/framework/work/semgraph_450")
     value.add_argument("--queries-csv", type=Path, default=PUBLIC_CSV)
     value.add_argument("--query-ids", default="")
     value.add_argument("--phase", choices=["debug", "acceptance"], default="debug")
     value.add_argument("--allow-api", action="store_true")
     value.add_argument("--model", choices=SUPPORTED_MODELS,
-                       help="Model pinned at init (default: gpt-5.6-terra); run cannot override the campaign model.")
+                       help="Model pinned at init (default: deepseek-v4-pro); run cannot override the campaign model.")
     value.add_argument("--reasoning-effort", choices=["high", "none", "low"],
-                       help="Pinned at init (default: high); Gemini OpenRouter requires low; native models support high/none.")
+                       help="Pinned at init (default: none); Gemini OpenRouter requires low; native models support high/none.")
     value.add_argument("--query-execution-limit", type=int, default=30)
     value.add_argument("--acceptance-queries", type=int, default=10)
     return value
@@ -194,7 +196,9 @@ def execute(args: argparse.Namespace, *, runtime: Runtime = CORE) -> dict[str, A
 
 
 def main() -> None:
-    result = execute(parser().parse_args())
+    args = parser().parse_args()
+    solver = {"full": Solver, "static": StaticSolver, "greedy": GreedySolver}[args.strategy]
+    result = execute(args, runtime=Runtime(solver=solver))
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

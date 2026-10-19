@@ -187,7 +187,7 @@ class ExecutionLimits(Record):
     max_calls: int | None = Field(default=160, ge=1)
     max_tokens: int | None = Field(default=400_000, ge=1)
     provider_seconds: int = 180
-    query_seconds: int = 1800
+    query_seconds: int = 300
     graph_seconds: int = 180
     max_assignments: int = 100_000
     max_revisions: int = 1

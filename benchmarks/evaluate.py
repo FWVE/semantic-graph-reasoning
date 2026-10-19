@@ -13,7 +13,7 @@ from pathlib import Path
 
 from reference import ARCHIVE, OUTPUT, key, reference, resource_from_archive
 
-PROTOCOL = "semgraph-complete-set-v1-ordered-paths"
+PROTOCOL = "semgraph-canonical-answer-set-v2"
 
 
 def sha256(path: Path) -> str:
@@ -119,13 +119,18 @@ def score(result: object, structural: set, expected: set, is_path: bool) -> dict
     correct = identities & expected
     structurally_correct = identities & structural
     valid = complete and not invalid
-    precision = len(correct) / len(groups) if groups else float(valid and not expected)
-    recall = len(correct) / len(expected) if expected else float(valid and not groups)
-    f1 = 2 * len(correct) / (len(groups) + len(expected)) if groups or expected else float(valid)
+    # canon_q produces a SET of answer instances. Equivalent repeated groups
+    # have one identity; distinct paths and original relation records stay distinct.
+    count = len(identities)
+    precision = len(correct) / count if count else float(not expected)
+    recall = len(correct) / len(expected) if expected else float(not count)
+    f1 = 2 * len(correct) / (count + len(expected)) if count or expected else 1.0
+    if not valid:
+        precision = recall = f1 = 0.0
     return {"status": result.get("status", "invalid") if isinstance(result, dict) else "invalid",
-            "valid_output": bool(valid), "predicted_count": len(groups), "gold_count": len(expected),
+            "valid_output": bool(valid), "predicted_count": count, "gold_count": len(expected),
             "duplicate_count": duplicates, "invalid_answers": invalid,
-            "answer_set_exact_match": bool(valid and not duplicates and identities == expected),
+            "answer_set_exact_match": bool(valid and identities == expected),
             "precision": precision, "recall": recall, "f1": f1,
             "structural_correct_count": len(structurally_correct), "correct_count": len(correct),
             "structural_correct_subgraphs": [parsed[k] for k in sorted(structurally_correct)],

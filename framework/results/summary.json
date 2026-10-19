@@ -1,6 +1,6 @@
 {
   "benchmark": "SemGraph-Bench",
-  "protocol": "Reported native complete answer-set match using anchor, node and original-edge sets. The release evaluator additionally preserves ordered-path identity.",
+  "protocol": "semgraph-canonical-answer-set-v2",
   "selection": "Fixed replacements for environmental failures; superseded failures excluded; semantic failures not selectively retried.",
   "timing": "Per-query execution time, excluding graph loading.",
   "results": [
@@ -10,39 +10,49 @@
       "reasoning_effort": "none",
       "queries": 450,
       "exact_matches": 338,
-      "accuracy": 0.75,
-      "completed": 436,
       "calls": 5583,
       "total_tokens": 10165993,
-      "macro_f1": 0.77,
-      "mean_seconds": 44.64
+      "mean_seconds": 44.64,
+      "accuracy_percent": 75.11,
+      "macro_f1_percent": 76.81
     },
     {
       "label": "GPT Luna",
       "model": "gpt-5.6-luna",
       "reasoning_effort": "none",
       "queries": 450,
-      "exact_matches": 323,
-      "accuracy": 0.72,
-      "completed": 432,
+      "exact_matches": 327,
       "calls": 6278,
       "total_tokens": 7798091,
-      "macro_f1": 0.76,
-      "mean_seconds": 34.10
+      "mean_seconds": 34.10,
+      "accuracy_percent": 72.67,
+      "macro_f1_percent": 76.19
     },
     {
       "label": "Gemini 3.8 Flash",
       "model": "google/gemini-3.8-flash",
       "reasoning_effort": "low",
       "queries": 450,
-      "exact_matches": 433,
-      "accuracy": 0.96,
-      "completed": 450,
+      "exact_matches": 437,
       "calls": 4773,
       "total_tokens": 4618880,
-      "macro_f1": 0.98,
-      "mean_seconds": 27.41
+      "mean_seconds": 27.41,
+      "accuracy_percent": 97.11,
+      "macro_f1_percent": 98.54
     }
   ],
-  "recording": "Recorded main-framework runs, using the native scoring protocol described above."
+  "recording": "Selected recorded model outputs, rescored with canonical answer-set semantics.",
+  "scoring": "Paper canon_q: compare sets of canonical answer instances; equivalent repeated groups count once. Accuracy and F1 average all 450 queries. Missing, unfinished or invalid outputs score zero; explicit empty/empty scores one.",
+  "rounding": "Display decimals to two places. Compute aggregate metrics before row rounding.",
+  "paper_budget": {
+    "query_seconds": 300,
+    "max_calls": 160,
+    "max_tokens": 400000
+  },
+  "paper_error_analysis": {
+    "source": "Appendix C.2",
+    "model": "deepseek-v4-pro",
+    "unfinished_queries": 23,
+    "definition": "Unfinished at the 300-second or 160-request budget cap."
+  }
 }
