@@ -8,15 +8,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from masge.data.citation import (
+from semantic_graph_reasoning.data.citation import (
     abstract_from_text,
     load_citation_data,
     normalise_text,
     source_manifest,
     title_from_text,
 )
-from masge.data.graph import CompactIntegerGraph
-from masge.logging_utils import stable_hash
+from semantic_graph_reasoning.data.graph import CompactIntegerGraph
+from semantic_graph_reasoning.logging_utils import stable_hash
 
 REDDIT_MATERIALIZATION_SCHEMA = {
     "node": ["name", "node_kind", "text"],
@@ -701,7 +701,7 @@ def prepare_framework_dataset(profile: str, source_path: Path) -> FrameworkDatas
             source_manifest=manifest,
         )
     if profile == "reddit":
-        from masge.data import reddit
+        from semantic_graph_reasoning.data import reddit
 
         data = reddit.load_graph(pickle_path)
         source_hash = _sha256_file(pickle_path)
@@ -735,7 +735,7 @@ def prepare_framework_dataset(profile: str, source_path: Path) -> FrameworkDatas
             domain_adapter=REDDIT_DOMAIN_ADAPTER,
         )
     if profile == "twitter":
-        from masge.data import serialization as restricted_pickle
+        from semantic_graph_reasoning.data import serialization as restricted_pickle
 
         with pickle_path.open("rb") as stream:
             obj = restricted_pickle.RestrictedUnpickler(stream).load()
@@ -780,8 +780,8 @@ def prepare_framework_dataset(profile: str, source_path: Path) -> FrameworkDatas
             external_edge_ids=original_edge_ids,
         )
     if profile == "goodreads_children":
-        from masge.data import serialization as goodreads
-        from masge.data import serialization as restricted_pickle
+        from semantic_graph_reasoning.data import serialization as goodreads
+        from semantic_graph_reasoning.data import serialization as restricted_pickle
 
         mapping = goodreads.load_mapping(pickle_path)
         source_hash = _sha256_file(pickle_path)
@@ -817,8 +817,8 @@ def prepare_framework_dataset(profile: str, source_path: Path) -> FrameworkDatas
             domain_adapter=GOODREADS_CHILDREN_DOMAIN_ADAPTER,
         )
     if profile in BIPARTITE_REVIEW_PROFILES:
-        from masge.data import serialization as restricted_pickle
-        from masge.data import serialization as review_graph
+        from semantic_graph_reasoning.data import serialization as restricted_pickle
+        from semantic_graph_reasoning.data import serialization as review_graph
 
         spec = BIPARTITE_REVIEW_PROFILES[profile]
         mapping = review_graph.load_mapping(pickle_path)

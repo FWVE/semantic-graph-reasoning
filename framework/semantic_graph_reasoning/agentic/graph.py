@@ -10,7 +10,7 @@ from typing import Any
 import networkx as nx  # type: ignore[import-untyped]
 import numpy as np
 
-from masge.agentic.models import ExecutionLimits, Plan
+from semantic_graph_reasoning.agentic.models import ExecutionLimits, Plan
 
 
 class GraphLimitError(RuntimeError):

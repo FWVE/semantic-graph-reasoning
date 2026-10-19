@@ -9,8 +9,8 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-from masge.agentic.graph import Graph
-from masge.data.adapters import prepare_framework_dataset
+from semantic_graph_reasoning.agentic.graph import Graph
+from semantic_graph_reasoning.data.adapters import prepare_framework_dataset
 
 ROOT = Path(__file__).resolve().parents[3]
 PUBLIC_CSV = ROOT / "benchmarks/data/queries.csv"

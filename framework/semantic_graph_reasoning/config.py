@@ -15,7 +15,7 @@ from typing import Literal
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from masge.exceptions import ConfigurationError
+from semantic_graph_reasoning.exceptions import ConfigurationError
 
 ProviderName = Literal["fake", "openai", "replay"]
 TransportKind = Literal["responses", "chat_completions"]

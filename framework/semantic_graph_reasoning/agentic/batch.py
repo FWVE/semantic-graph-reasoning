@@ -5,7 +5,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from masge.logging_utils import redact_text
+from semantic_graph_reasoning.logging_utils import redact_text
 
 
 class BatchGuard:

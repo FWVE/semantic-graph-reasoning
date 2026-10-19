@@ -7,9 +7,9 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from masge.agentic.context import page
-from masge.agentic.graph import Assignment, Graph
-from masge.agentic.models import (
+from semantic_graph_reasoning.agentic.context import page
+from semantic_graph_reasoning.agentic.graph import Assignment, Graph
+from semantic_graph_reasoning.agentic.models import (
     Condition,
     EdgeTarget,
     ExecutionLimits,

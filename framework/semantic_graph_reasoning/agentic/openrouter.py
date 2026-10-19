@@ -6,7 +6,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from masge.agentic.models import ExecutionAction
+from semantic_graph_reasoning.agentic.models import ExecutionAction
 
 T = TypeVar("T", bound=BaseModel)
 MODEL = "google/gemini-3.8-flash"

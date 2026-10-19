@@ -5,7 +5,7 @@ import collections
 from dataclasses import dataclass
 from pathlib import Path
 
-from masge.data.serialization import ALLOWED_GLOBALS, RestrictedUnpickler
+from semantic_graph_reasoning.data.serialization import ALLOWED_GLOBALS, RestrictedUnpickler
 
 __all__ = ["ALLOWED_GLOBALS", "load_graph"]
 

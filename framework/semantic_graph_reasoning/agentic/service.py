@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from masge.agentic.context import (
+from semantic_graph_reasoning.agentic.context import (
     compact_feedback,
     coordinator_messages,
     history_entries,
@@ -19,18 +19,29 @@ from masge.agentic.context import (
     page,
     update_memory,
 )
-from masge.agentic.graph import Graph, GraphLimitError
-from masge.agentic.models import Action, ExecutionAction, ExecutionLimits, InspectionReport, Plan
-from masge.agentic.prompts import GUIDES, coordinator_prompt, inspector_prompt
-from masge.agentic.provider import ModelOutputError, Provider, QueryBudgetError, write_json
-from masge.agentic.workspace import (
+from semantic_graph_reasoning.agentic.graph import Graph, GraphLimitError
+from semantic_graph_reasoning.agentic.models import (
+    Action,
+    ExecutionAction,
+    ExecutionLimits,
+    InspectionReport,
+    Plan,
+)
+from semantic_graph_reasoning.agentic.prompts import GUIDES, coordinator_prompt, inspector_prompt
+from semantic_graph_reasoning.agentic.provider import (
+    ModelOutputError,
+    Provider,
+    QueryBudgetError,
+    write_json,
+)
+from semantic_graph_reasoning.agentic.workspace import (
     QuoteValidationError,
     ReceiptFormatError,
     Workspace,
     digest,
     validate_plan,
 )
-from masge.logging_utils import redact_text
+from semantic_graph_reasoning.logging_utils import redact_text
 
 
 class InspectionStageError(ValueError):

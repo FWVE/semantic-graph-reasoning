@@ -15,23 +15,23 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "framework"))
 
-from masge.agentic.batch import BatchGuard
-from masge.agentic.campaign import complete, reserve
-from masge.agentic.graph import Graph
-from masge.agentic.models import ExecutionLimits
-from masge.agentic.provider import (
+from semantic_graph_reasoning.agentic.batch import BatchGuard
+from semantic_graph_reasoning.agentic.campaign import complete, reserve
+from semantic_graph_reasoning.agentic.graph import Graph
+from semantic_graph_reasoning.agentic.models import ExecutionLimits
+from semantic_graph_reasoning.agentic.provider import (
     SUPPORTED_MODELS,
     NativeProvider,
     validate_model_effort,
     write_json,
 )
-from masge.agentic.service import Solver
-from masge.agentic.workspace import digest
-from masge.data.benchmark import PUBLIC_CSV, SOURCES, load_graph, public_rows
+from semantic_graph_reasoning.agentic.service import Solver
+from semantic_graph_reasoning.agentic.workspace import digest
+from semantic_graph_reasoning.data.benchmark import PUBLIC_CSV, SOURCES, load_graph, public_rows
 
 
 def fingerprints() -> dict[str, str]:
-    package = ROOT / "framework/masge"
+    package = ROOT / "framework/semantic_graph_reasoning"
     paths = sorted(p for p in package.rglob("*.py") if p.relative_to(package).parts[0] != "experiments")
     paths += sorted((ROOT / "framework").glob("*.py"))
     paths += [PUBLIC_CSV, SOURCES, ROOT / "requirements.txt"]

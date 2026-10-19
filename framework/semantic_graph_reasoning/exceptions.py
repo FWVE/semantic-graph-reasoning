@@ -1,13 +1,13 @@
 """Project-specific exceptions with credential-safe messages."""
 
 
-class MASGEError(Exception):
-    """Base exception for expected MA-SGE failures."""
+class SemanticGraphReasoningError(Exception):
+    """Base exception for expected Semantic Graph Reasoning failures."""
 
 
-class ConfigurationError(MASGEError):
+class ConfigurationError(SemanticGraphReasoningError):
     """Raised when a provider is missing necessary non-secret configuration."""
 
 
-class DatasetFormatError(MASGEError):
+class DatasetFormatError(SemanticGraphReasoningError):
     """Raised for documented but unsupported external dataset formats."""

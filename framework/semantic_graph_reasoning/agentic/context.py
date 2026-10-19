@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from masge.agentic.models import MemoryUpdate, Plan
+from semantic_graph_reasoning.agentic.models import MemoryUpdate, Plan
 
 SUMMARY_ITEMS = 3
 MEMORY_LIMITS = {"notes": 12, "updates_per_action": 4, "key_characters": 48, "text_characters": 600,

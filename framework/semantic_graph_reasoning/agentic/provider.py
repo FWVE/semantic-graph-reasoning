@@ -10,14 +10,22 @@ from typing import Any, Protocol, TypeVar
 
 from pydantic import BaseModel
 
-from masge.agentic.batch import BatchGuard
-from masge.agentic.deepseek_strict import ENDPOINT, parse_tool_output, strict_request
-from masge.agentic.models import ExecutionAction, ExecutionLimits
-from masge.agentic.openrouter import ENDPOINT as OPENROUTER_ENDPOINT
-from masge.agentic.openrouter import MODEL as OPENROUTER_MODEL
-from masge.agentic.openrouter import parse_structured_output, structured_request, validate_response
-from masge.config import Settings
-from masge.logging_utils import redact_text
+from semantic_graph_reasoning.agentic.batch import BatchGuard
+from semantic_graph_reasoning.agentic.deepseek_strict import (
+    ENDPOINT,
+    parse_tool_output,
+    strict_request,
+)
+from semantic_graph_reasoning.agentic.models import ExecutionAction, ExecutionLimits
+from semantic_graph_reasoning.agentic.openrouter import ENDPOINT as OPENROUTER_ENDPOINT
+from semantic_graph_reasoning.agentic.openrouter import MODEL as OPENROUTER_MODEL
+from semantic_graph_reasoning.agentic.openrouter import (
+    parse_structured_output,
+    structured_request,
+    validate_response,
+)
+from semantic_graph_reasoning.config import Settings
+from semantic_graph_reasoning.logging_utils import redact_text
 
 T = TypeVar("T", bound=BaseModel)
 DEEPSEEK_MODELS = ("deepseek-v4-flash", "deepseek-v4-pro")
