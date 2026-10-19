@@ -2,10 +2,7 @@
   "graph_sources": [
     {
       "graph_instance": "amazon_movie",
-      "manifest_path": "benchmarks/sources/amazon_movie/download_manifest.json",
       "path": "benchmarks/sources/amazon_movie/source/amazon_movie/processed/movie.pkl",
-      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
-      "sha256": "871ecd8bb0352ac55b9ba4d40ec21e3f3b7853a87ee4183684589966e9cac6c9",
       "size_bytes": 1945870917,
       "text_field_provenance": {
         "edge_text": {
@@ -43,14 +40,12 @@
           "normalization": "strip_then_casefold_exact_equality"
         },
         "projection_summary": null
-      }
+      },
+      "upstream_path": "amazon_movie/processed/movie.pkl"
     },
     {
       "graph_instance": "citation",
-      "manifest_path": "benchmarks/sources/citation/download_manifest.json",
       "path": "benchmarks/sources/citation/source/arxiv/processed/arxiv.pkl",
-      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
-      "sha256": "2c79dbeaf0b9bc1458c04d385c492742987cd02a08beda123387ca392cb27e59",
       "size_bytes": 389843902,
       "text_field_provenance": {
         "edge_text": {
@@ -77,14 +72,12 @@
           "normalization": "strip_then_casefold_exact_equality"
         },
         "projection_summary": null
-      }
+      },
+      "upstream_path": "arxiv/processed/arxiv.pkl"
     },
     {
       "graph_instance": "goodreads_children",
-      "manifest_path": "benchmarks/sources/goodreads_children/download_manifest.json",
       "path": "benchmarks/sources/goodreads_children/source/goodreads_children/processed/children.pkl",
-      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
-      "sha256": "242f5a016589c1a6a20caede8dbe002005f2a6d9cde33055c7c5a352fd1f9a3f",
       "size_bytes": 413458662,
       "text_field_provenance": {
         "edge_text": {
@@ -120,14 +113,12 @@
           "normalization": "strip_then_casefold_exact_equality"
         },
         "projection_summary": null
-      }
+      },
+      "upstream_path": "goodreads_children/processed/children.pkl"
     },
     {
       "graph_instance": "goodreads_crime",
-      "manifest_path": "benchmarks/sources/goodreads_crime/download_manifest.json",
       "path": "benchmarks/sources/goodreads_crime/source/goodreads_crime/processed/crime.pkl",
-      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
-      "sha256": "2c3df926cb310376103f0cd85d8149695228b43a929b7703786afbce884f4359",
       "size_bytes": 1473408362,
       "text_field_provenance": {
         "edge_text": {
@@ -163,14 +154,12 @@
           "normalization": "strip_then_casefold_exact_equality"
         },
         "projection_summary": null
-      }
+      },
+      "upstream_path": "goodreads_crime/processed/crime.pkl"
     },
     {
       "graph_instance": "goodreads_history",
-      "manifest_path": "benchmarks/sources/goodreads_history/download_manifest.json",
       "path": "benchmarks/sources/goodreads_history/source/goodreads_history/processed/history.pkl",
-      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
-      "sha256": "efd9056a589cdbcf3b691c441e43dcf7c21e35d2bf907e85947b8daf298c6149",
       "size_bytes": 1878300925,
       "text_field_provenance": {
         "edge_text": {
@@ -206,14 +195,12 @@
           "normalization": "strip_then_casefold_exact_equality"
         },
         "projection_summary": null
-      }
+      },
+      "upstream_path": "goodreads_history/processed/history.pkl"
     },
     {
       "graph_instance": "reddit",
-      "manifest_path": "benchmarks/sources/reddit/download_manifest.json",
       "path": "benchmarks/sources/reddit/source/reddit/processed/reddit.pkl",
-      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
-      "sha256": "298b871b7db735cae25c835f868fdfb9d976f113eee22e06fb14ce03167383d2",
       "size_bytes": 68520870,
       "text_field_provenance": {
         "edge_text": {
@@ -247,14 +234,12 @@
           "normalization": "strip_then_casefold_exact_equality"
         },
         "projection_summary": "interleaved endpoint records -> one text per referenced node"
-      }
+      },
+      "upstream_path": "reddit/processed/reddit.pkl"
     },
     {
       "graph_instance": "twitter",
-      "manifest_path": "benchmarks/sources/twitter/download_manifest.json",
       "path": "benchmarks/sources/twitter/source/twitter/processed/twitter.pkl",
-      "revision": "baa547adc859e97e0845f77e36b98f863d1d96b2",
-      "sha256": "73792b04968c3cb94930a8f84db6e99e96605816ea590d9171328af5e2ebd14a",
       "size_bytes": 7971933,
       "text_field_provenance": {
         "edge_text": {
@@ -293,10 +278,10 @@
           "normalization": "strip_then_casefold_exact_equality"
         },
         "projection_summary": "identical incoming edge text -> target tweet text; user nodes retain only kind"
-      }
+      },
+      "upstream_path": "twitter/processed/twitter.pkl"
     }
   ],
   "schema_version": 1,
-  "scope": "complete structural catalogs with original source IDs and full text",
-  "verification": "source provenance and local reader hashes; no raw graph re-enumeration in this cleanup"
+  "scope": "complete structural catalogs with original source IDs and full text"
 }

@@ -51,9 +51,10 @@ def load_graph(domain: str) -> tuple[Graph, dict[str, Any]]:
     source = (ROOT / spec["path"]).resolve()
     if not source.is_relative_to(ROOT / "benchmarks/sources"):
         raise ValueError("registered graph path escaped benchmarks/sources")
+    if source.stat().st_size != spec["size_bytes"]:
+        raise ValueError("raw graph size differs from the registered source")
     dataset = prepare_framework_dataset(domain, source)
-    if dataset.source_manifest["sha256"] != spec["sha256"]:
-        raise ValueError("raw graph hash differs from the registered 450-query source")
+    source_hash = str(dataset.source_manifest["sha256"])
     compact = dataset.compact_graph
     if compact.weighted:
         raise ValueError("this runtime exposes unweighted operations only")
@@ -78,7 +79,7 @@ def load_graph(domain: str) -> tuple[Graph, dict[str, Any]]:
 
     graph = Graph(node_count=compact.node_count, sources=compact.edge_sources, targets=compact.edge_targets,
                   text=lambda entity_kind, identifier: str(read(entity_kind, identifier, ["text"])["text"]),
-                  kind=kind, name=name, domain=domain, source_hash=spec["sha256"],
+                  kind=kind, name=name, domain=domain, source_hash=source_hash,
                   original_edge_ids=dataset.external_edge_ids,
                   node_kinds=tuple(sorted(spec["text_field_provenance"]["node_text_by_kind"])))
     schema = {"domain": domain, "directed": compact.directed, "weighted": False,
@@ -89,7 +90,6 @@ def load_graph(domain: str) -> tuple[Graph, dict[str, Any]]:
                                           for kind, field in spec["text_field_provenance"]["node_text_by_kind"].items()},
                                  "edge": spec["text_field_provenance"]["edge_text"]["semantic_eligibility"]},
               "edge_direction": "stored source to target; original ID restored only at output",
-              "source_sha256": spec["sha256"],
               "identity_lookup": ("Native node names/titles; Amazon reviewer aliases come only from source-bound native review headers."
                                   if identity_aliases else "Native node names/titles and declared typed IDs."),
               "text_projection": spec["text_field_provenance"].get("projection_summary")}

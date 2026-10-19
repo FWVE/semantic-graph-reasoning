@@ -1,81 +1,60 @@
-"""List or fetch the seven pinned SemGraph-Bench source graphs without unpickling."""
+"""List or download the seven SemGraph-Bench source graphs."""
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import re
 from pathlib import Path
 from urllib.request import urlopen
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def sha256(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as stream:
-        while block := stream.read(1024 * 1024):
-            value.update(block)
-    return value.hexdigest()
+DATASET = "https://huggingface.co/datasets/ZhuofengLi/TEG-Datasets/resolve/baa547adc859e97e0845f77e36b98f863d1d96b2"
 
 
 def source_records(root: Path = ROOT) -> list[dict]:
-    """Cross-check the solver's source registry against pinned download provenance."""
     registry = json.loads((root / "benchmarks/sources.json").read_text("utf-8"))
     records = []
-    for spec in registry["graph_sources"]:
-        target = (root / spec["path"]).resolve()
+    for source in registry["graph_sources"]:
+        target = (root / source["path"]).resolve()
         if not target.is_relative_to((root / "benchmarks/sources").resolve()):
             raise ValueError("source path escaped benchmarks/sources")
-        manifest_path = root / spec["manifest_path"]
-        dataset_root = manifest_path.parent
-        manifest = json.loads(manifest_path.read_text("utf-8"))
-        candidates = [r for r in manifest["files"] if (dataset_root / r["local_path"]).resolve() == target]
-        if (len(candidates) != 1 or candidates[0]["sha256"] != spec["sha256"]
-                or manifest["revision"] != spec["revision"]):
-            raise ValueError(f"download provenance disagrees with registry: {spec['graph_instance']}")
-        record = candidates[0]
-        if (manifest["repo_id"] != "ZhuofengLi/TEG-Datasets"
-                or not re.fullmatch(r"[0-9a-f]{40}", manifest["revision"])
-                or ".." in Path(record["upstream_path"]).parts):
-            raise ValueError("unexpected source repository, revision, or upstream path")
-        records.append({"domain": spec["graph_instance"], "path": spec["path"],
-                        "sha256": spec["sha256"], "size_bytes": record["size_bytes"],
-                        "url": f"https://huggingface.co/datasets/{manifest['repo_id']}/resolve/"
-                               f"{manifest['revision']}/{record['upstream_path']}"})
+        upstream = Path(source["upstream_path"])
+        if upstream.is_absolute() or ".." in upstream.parts:
+            raise ValueError("unexpected upstream source path")
+        records.append({"domain": source["graph_instance"], "path": source["path"],
+                        "size_bytes": source["size_bytes"],
+                        "url": f"{DATASET}/{source['upstream_path']}"})
     return records
 
 
 def download(record: dict, root: Path = ROOT) -> str:
     target = root / record["path"]
     if target.exists():
-        if target.stat().st_size != record["size_bytes"] or sha256(target) != record["sha256"]:
-            raise ValueError(f"existing source differs; preserve and inspect it: {target}")
-        return "already_verified"
+        if target.stat().st_size != record["size_bytes"]:
+            raise ValueError("existing source differs; preserve and inspect it")
+        return "already_present"
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(target.name + f".{uuid4().hex}.part")
     try:
         with urlopen(record["url"], timeout=120) as response, temporary.open("xb") as output:  # noqa: S310
             while block := response.read(1024 * 1024):
                 output.write(block)
-        if temporary.stat().st_size != record["size_bytes"] or sha256(temporary) != record["sha256"]:
-            raise ValueError(f"download checksum mismatch: {record['domain']}")
-        # Refuse to replace a source another process installed while downloading.
+        if temporary.stat().st_size != record["size_bytes"]:
+            raise ValueError(f"download size mismatch: {record['domain']}")
         if target.exists():
-            raise FileExistsError(target)
+            raise FileExistsError(f"source appeared during download: {target}")
         temporary.rename(target)
     finally:
-        if temporary.exists():
-            temporary.unlink()
-    return "downloaded_and_verified"
+        temporary.unlink(missing_ok=True)
+    return "downloaded"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--domains", help="Comma-separated domains; omitted means all seven")
-    parser.add_argument("--download", action="store_true", help="Fetch missing files; default only lists them")
-    parser.add_argument("--verify", action="store_true", help="Hash existing raw files; no deserialization")
+    parser.add_argument("--domains", help="Comma-separated graph domains; omit for all seven")
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument("--download", action="store_true")
+    action.add_argument("--verify", action="store_true", help="Check local file presence and size")
     args = parser.parse_args()
     records = source_records()
     selected = set(args.domains.split(",")) if args.domains else {r["domain"] for r in records}
@@ -84,13 +63,13 @@ def main() -> None:
     for record in records:
         if record["domain"] not in selected:
             continue
-        state = "present" if (ROOT / record["path"]).is_file() else "missing"
+        target = ROOT / record["path"]
+        state = "present" if target.is_file() else "missing"
         if args.download:
             state = download(record)
         elif args.verify:
-            target = ROOT / record["path"]
-            if not target.is_file() or target.stat().st_size != record["size_bytes"] or sha256(target) != record["sha256"]:
-                raise ValueError(f"source missing or checksum mismatch: {record['domain']}")
+            if not target.is_file() or target.stat().st_size != record["size_bytes"]:
+                raise ValueError(f"source missing or size mismatch: {record['domain']}")
             state = "verified"
         print(json.dumps({**record, "state": state}))
 

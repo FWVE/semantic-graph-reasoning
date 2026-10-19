@@ -35,9 +35,9 @@ output obligations are satisfied; unfinished runs return `unresolved`.
 | GPT 5.6 Luna | none | 323/450 (71.78%) | 432/450 |
 | Gemini 3.8 Flash | low | 433/450 (96.22%) | 450/450 |
 
-Recorded results, source snapshots and scoring protocols are available in
+Recorded results and scoring protocols are available in
 [framework/results](framework/results), with a [summary](framework/results/summary.json)
-and per-query CSVs for each model.
+and per-query CSVs for each model. Decimal results use two decimal places.
 
 ## Installation Steps
 
@@ -68,7 +68,7 @@ python benchmarks/download.py --domains reddit --verify
 ```
 
 This downloads Reddit for the example below. Omit `--domains` to download all seven
-graphs (6.18 GB). Revisions and checksums are recorded in [sources.json](benchmarks/sources.json).
+graphs (6.18 GB). Download locations are recorded in [sources.json](benchmarks/sources.json).
 The graphs come from [TEG-DB](https://huggingface.co/datasets/ZhuofengLi/TEG-Datasets)
 and retain their upstream terms.
 

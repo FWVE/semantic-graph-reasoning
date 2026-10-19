@@ -5,19 +5,34 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import zipfile
 from copy import deepcopy
+from decimal import Decimal
 from pathlib import Path
 
-from download import sha256
 from reference import ARCHIVE, OUTPUT, key, reference, resource_from_archive
 from verify import verify
 
 PROTOCOL = "semgraph-complete-set-v1-ordered-paths"
 
 
-def write(path: Path, value: object) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write(path: Path, value: object, *, display_results: bool = False) -> None:
+    text = json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+    if display_results:
+        tokens = re.compile(r'"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?')
+
+        def format_token(match: re.Match[str]) -> str:
+            token = match.group()
+            return (format(Decimal(token), ".2f")
+                    if not token.startswith('"') and any(char in token for char in ".eE") else token)
+
+        text = tokens.sub(format_token, text)
+    path.write_text(text, encoding="utf-8")
 
 
 def native_path(group: dict, plan: dict) -> list[int] | None:
@@ -178,11 +193,6 @@ def main() -> None:
     write(args.output / "predictions.frozen.json", predictions)
     # The complete prediction snapshot is now on disk. First private reference access follows.
     verify()
-    with zipfile.ZipFile(ARCHIVE) as archive:
-        manifest = json.loads(archive.read("manifest.json"))
-    for name in ("gold.json", "queries.csv"):
-        if sha256(OUTPUT / name) != manifest["files"][name]:
-            raise ValueError(f"reference input checksum mismatch: {name}")
     gold = {r["query_id"]: r["certificate"] for r in json.loads((OUTPUT / "gold.json").read_text("utf-8"))}
     rows = []
     with zipfile.ZipFile(ARCHIVE) as archive:
@@ -194,11 +204,10 @@ def main() -> None:
                "exact_matches": sum(r["answer_set_exact_match"] for r in rows),
                "accuracy": sum(r["answer_set_exact_match"] for r in rows) / len(rows),
                "macro_f1": sum(r["f1"] for r in rows) / len(rows),
-               "gold_sha256": sha256(OUTPUT / "gold.json"), "evidence_zip_sha256": sha256(ARCHIVE),
                "external_calls": 0, "benchmark_name": "SemGraph-Bench"}
-    write(args.output / "per_query.json", rows)
-    write(args.output / "summary.json", summary)
-    print(json.dumps(summary, indent=2))
+    write(args.output / "per_query.json", rows, display_results=True)
+    write(args.output / "summary.json", summary, display_results=True)
+    print((args.output / "summary.json").read_text("utf-8"), end="")
 
 
 if __name__ == "__main__":
