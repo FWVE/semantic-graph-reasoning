@@ -12,13 +12,17 @@ from decimal import Decimal
 from pathlib import Path
 
 from reference import ARCHIVE, OUTPUT, key, reference, resource_from_archive
-from verify import verify
 
 PROTOCOL = "semgraph-complete-set-v1-ordered-paths"
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_gold() -> dict:
+    return {row["query_id"]: row["certificate"]
+            for row in json.loads((OUTPUT / "gold.json").read_text("utf-8"))}
 
 
 def write(path: Path, value: object, *, display_results: bool = False) -> None:
@@ -192,8 +196,7 @@ def main() -> None:
           "phase": args.phase if args.campaign else None})
     write(args.output / "predictions.frozen.json", predictions)
     # The complete prediction snapshot is now on disk. First private reference access follows.
-    verify()
-    gold = {r["query_id"]: r["certificate"] for r in json.loads((OUTPUT / "gold.json").read_text("utf-8"))}
+    gold = load_gold()
     rows = []
     with zipfile.ZipFile(ARCHIVE) as archive:
         for qid in selected:

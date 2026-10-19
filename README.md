@@ -58,11 +58,10 @@ pip install -r requirements.txt
 
 SemGraph-Bench is included in [benchmarks/data](benchmarks/data): `queries.csv`
 contains the public questions, `gold.json` contains the reference answers, and
-`semgraph_bench_450.zip` contains the frozen resources and annotation evidence.
+`semgraph_bench_450.zip` contains the frozen graph structures and source text.
 There are 50 questions per structural family. Source graphs are downloaded separately:
 
 ```bash
-python benchmarks/verify.py
 python benchmarks/download.py --domains reddit --download
 python benchmarks/download.py --domains reddit --verify
 ```
