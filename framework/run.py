@@ -28,7 +28,6 @@ from semantic_graph_reasoning.agentic.provider import (
 from semantic_graph_reasoning.agentic.service import Solver
 from semantic_graph_reasoning.agentic.workspace import digest
 from semantic_graph_reasoning.data.benchmark import PUBLIC_CSV, SOURCES, load_graph, public_rows
-from semantic_graph_reasoning.scheduling import GreedySolver, StaticSolver
 
 
 def fingerprints() -> dict[str, str]:
@@ -160,7 +159,6 @@ async def run(args: argparse.Namespace, *, guard: BatchGuard | None = None, runt
 def parser(commands: tuple[str, ...] = ("init", "preflight", "run", "status")) -> argparse.ArgumentParser:
     value = argparse.ArgumentParser(description=__doc__)
     value.add_argument("command", choices=commands)
-    value.add_argument("--strategy", choices=["full", "static", "greedy"], default="full")
     value.add_argument("--campaign", type=Path, default=ROOT / "artifacts/framework/work/semgraph_450")
     value.add_argument("--queries-csv", type=Path, default=PUBLIC_CSV)
     value.add_argument("--query-ids", default="")
@@ -196,9 +194,7 @@ def execute(args: argparse.Namespace, *, runtime: Runtime = CORE) -> dict[str, A
 
 
 def main() -> None:
-    args = parser().parse_args()
-    solver = {"full": Solver, "static": StaticSolver, "greedy": GreedySolver}[args.strategy]
-    result = execute(args, runtime=Runtime(solver=solver))
+    result = execute(parser().parse_args())
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
