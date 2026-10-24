@@ -26,7 +26,7 @@ shares judgments with identical dependencies, and preserves relation provenance.
 | Inspector | [`inspector_prompt`](framework/semantic_graph_reasoning/agentic/prompts.py#L278), including source reading, clarification, and evidence quotation |
 | Blueprint and scheduling schema | [`Plan`](framework/semantic_graph_reasoning/agentic/models.py#L86), [`Action` and `ExecutionAction`](framework/semantic_graph_reasoning/agentic/models.py#L109) |
 | Runtime inputs and evidence feedback | [`context.py`](framework/semantic_graph_reasoning/agentic/context.py) and [`service.py`](framework/semantic_graph_reasoning/agentic/service.py) |
-| Static / Greedy scheduling (§6.6, Appendix C.2) | [`static_order`](framework/semantic_graph_reasoning/scheduling.py#L26) and [`greedy_order`](framework/semantic_graph_reasoning/scheduling.py#L45) |
+| Static / Greedy scheduling (Table 4, Appendix C.2) | [`static_order`](framework/semantic_graph_reasoning/scheduling.py#L26) and [`greedy_order`](framework/semantic_graph_reasoning/scheduling.py#L45) |
 
 Static fixes the initial unit order by candidate ID and clause ID. Greedy recomputes
 coverage of distinct unresolved candidates at each stage, breaking ties by object
@@ -59,20 +59,24 @@ python framework/run.py preflight --strategy full
 
 Recorded results and scoring protocols are available in
 [framework/results](framework/results), with a [summary](framework/results/summary.json)
-and per-query CSVs for each model. The `em` column sums to the counts in Table 3.
+and per-query CSVs for each model. The `em` column sums to the exact-match counts
+in Tables 3 and A4. Resource summaries correspond to Table A6.
 
 [`benchmarks/evaluate.py`](benchmarks/evaluate.py) scores sets after `canon_q`
 normalization: equivalent repeated answer groups count once. Original node and
 relation-record IDs, anchor bindings, parallel records, and directed path order
 remain part of instance identity. Accuracy is complete answer-set equality; F1
 is averaged equally over all 450 queries. Explicit empty/empty answers receive
-F1 = 1.00; missing, unfinished, or invalid outputs receive F1 = 0.00. CSV fractions
-and displayed percentages use two decimal places; aggregate F1 is computed before
-rounding individual rows.
+F1 = 1.00; missing, unfinished, or invalid outputs receive F1 = 0.00.
+
+The CSVs retain integer instance counts: `tp`, `predicted_groups`, and
+`reference_groups`. Reconstruct each row's F1 as
+`2 * tp / (predicted_groups + reference_groups)`; when both counts are zero, use
+`em`. Average these fractions over all 450 rows, then multiply by 100 and round
+to two decimal places to reproduce the F1 percentages above.
 
 Appendix C.2 reports **23 unfinished DeepSeek queries under the 300-second or
-160-request budget cap**. This is the paper's error-analysis count. The CSVs
-provide canonical answer scores and resource statistics for Table 3.
+160-request budget cap**.
 
 ## Installation Steps
 

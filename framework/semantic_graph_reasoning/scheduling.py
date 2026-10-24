@@ -1,4 +1,4 @@
-"""Static and Greedy investigation policies from the paper, Sections 6.6 and C.2."""
+"""Static and Greedy investigation policies from Table 4 and Appendix C.2."""
 from __future__ import annotations
 
 import re

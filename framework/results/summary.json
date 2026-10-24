@@ -1,8 +1,6 @@
 {
   "benchmark": "SemGraph-Bench",
   "protocol": "semgraph-canonical-answer-set-v2",
-  "selection": "Fixed replacements for environmental failures; superseded failures excluded; semantic failures not selectively retried.",
-  "timing": "Per-query execution time, excluding graph loading.",
   "results": [
     {
       "label": "DeepSeek Pro",
@@ -41,9 +39,8 @@
       "macro_f1_percent": 98.54
     }
   ],
-  "recording": "Selected recorded model outputs, rescored with canonical answer-set semantics.",
   "scoring": "Paper canon_q: compare sets of canonical answer instances; equivalent repeated groups count once. Accuracy and F1 average all 450 queries. Missing, unfinished or invalid outputs score zero; explicit empty/empty scores one.",
-  "rounding": "Display decimals to two places. Compute aggregate metrics before row rounding.",
+  "rounding": "Compute query F1 from integer instance counts; average before rounding percentages to two decimal places.",
   "paper_budget": {
     "query_seconds": 300,
     "max_calls": 160,
