@@ -48,3 +48,20 @@ Run all commands from the repository root:
 ```bash
 pip install -r requirements.txt
 ```
+
+### 3. Download source graphs
+
+The 450 questions and reference answers are included in `benchmarks/`.
+Download the seven source graph files from [TEG-Datasets](https://huggingface.co/datasets/ZhuofengLi/TEG-Datasets/tree/main):
+
+| Graph | File path in TEG-Datasets |
+| --- | --- |
+| Citation | `arxiv/processed/arxiv.pkl` |
+| Amazon Movie | `amazon_movie/processed/movie.pkl` |
+| Goodreads Children | `goodreads_children/processed/children.pkl` |
+| Goodreads Crime | `goodreads_crime/processed/crime.pkl` |
+| Goodreads History | `goodreads_history/processed/history.pkl` |
+| Reddit | `reddit/processed/reddit.pkl` |
+| Twitter | `twitter/processed/twitter.pkl` |
+
+Pass the relevant downloaded `.pkl` file to `framework/run.py` with `--graph`.
