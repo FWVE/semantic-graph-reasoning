@@ -32,6 +32,7 @@ class Graph:
         text: Callable[[str, int], str], kind: Callable[[int], str],
         name: Callable[[int], str], domain: str,
         original_edge_ids: Any = None, node_kinds: tuple[str, ...] = ("paper",),
+        summary: Callable[[str, int], str | None] | None = None,
     ) -> None:
         self.node_count = node_count
         self.sources = np.asarray(sources, dtype=np.int64)
@@ -40,6 +41,7 @@ class Graph:
         self.original_ids = (np.arange(self.edge_count) if original_edge_ids is None
                              else np.asarray(original_edge_ids, dtype=np.int64))
         self._text, self.kind, self.name = text, kind, name
+        self._summary = summary
         self.domain = domain
         self.node_kinds = node_kinds
         self._out_order = np.argsort(self.sources, kind="stable")
@@ -67,14 +69,19 @@ class Graph:
             result.extend(self.between(target, source))
         return tuple(sorted(result))
 
-    def evidence(self, kind: str, identifier: int) -> dict[str, Any]:
+    def evidence(self, kind: str, identifier: int, *, tier: str = "full") -> dict[str, Any]:
         if kind not in {"node", "edge"} or not 0 <= identifier < (
             self.node_count if kind == "node" else self.edge_count
         ):
             raise ValueError("evidence object outside graph")
         text = self._text(kind, identifier)
+        summary = self._summary(kind, identifier) if self._summary is not None else None
+        summarized = tier == "summary" and summary is not None and summary != text
         value: dict[str, Any] = {"object_ref": f"{kind}:{identifier}", "field": "text",
-                                 "text": text, "source_graph": self.domain}
+                                 "text": summary if summarized else text, "source_graph": self.domain,
+                                 "complete": not summarized}
+        if summarized:
+            value["field"] = "summary"
         if kind == "node":
             value["kind"] = self.kind(identifier)
         else:

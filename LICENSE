@@ -22,4 +22,4 @@ SOFTWARE.
 
 This license covers the project software and original documentation. It does
 not relicense upstream datasets, source text, or excerpts in benchmark evidence.
-Source provenance is recorded in benchmarks/sources.json.
+Source graphs are linked in README.md.

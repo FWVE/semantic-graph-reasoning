@@ -120,10 +120,18 @@ def graph_from_mapping(domain: str, mapping: Mapping[str, Any]) -> tuple[Graph, 
         raise ValueError("source graph endpoint is outside the node range")
     spec = TEXT_SEMANTICS[domain]
     node_kinds = tuple(sorted(spec["node"]))
+    summaries = mapping.get("summaries", {})
+
+    def source_summary(kind: str, index: int) -> str | None:
+        identifier = index if kind == "node" else original_ids[index]
+        value = summaries.get(kind, {}).get(identifier)
+        return None if value is None else str(value)
+
     graph = Graph(node_count=len(node_texts), sources=sources, targets=targets,
                   text=lambda kind, index: node_texts[index] if kind == "node" else edge_texts[index],
                   kind=lambda index: kinds[index], name=lambda index: names[index], domain=domain,
-                  original_edge_ids=original_ids, node_kinds=node_kinds)
+                  original_edge_ids=original_ids, node_kinds=node_kinds,
+                  summary=source_summary if summaries else None)
     schema = {"domain": domain, "directed": True, "weighted": False,
               "node_count": graph.node_count, "edge_count": graph.edge_count,
               "node_kinds": list(node_kinds), "text_fields": ["text"],

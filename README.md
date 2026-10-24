@@ -24,7 +24,7 @@ sharing → complete answer-set assembly.
 
 ## Performance
 
-Results on all 450 SemGraph-Bench queries.
+Results reported in the paper on all 450 SemGraph-Bench queries.
 
 | Model | Accuracy (%) | F1 (%) |
 | --- | ---: | ---: |

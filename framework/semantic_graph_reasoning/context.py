@@ -2,9 +2,20 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from typing import Any
 
 from semantic_graph_reasoning.models import MemoryUpdate, Plan
+
+
+@lru_cache(maxsize=1)
+def _reading_encoder() -> Any:
+    import tiktoken
+    return tiktoken.get_encoding("o200k_base")
+
+
+def reading_tokens(value: Any) -> int:
+    return len(_reading_encoder().encode(json_text(value), disallowed_special=()))
 
 SUMMARY_ITEMS = 3
 MEMORY_LIMITS = {"notes": 12, "updates_per_action": 4, "key_characters": 48, "text_characters": 600,
@@ -69,6 +80,7 @@ def compact_feedback(observation: dict[str, Any]) -> dict[str, Any]:
             "condition_ids": list(dict.fromkeys(c["condition_id"] for c in unit["conditions"])),
             "dependent_candidates": summary(unit["dependent_candidates"]),
             "estimated_text_characters": unit["estimated_text_characters"],
+            **{k: unit[k] for k in ("coverage", "decisive_true", "decisive_false", "deferred_expansion", "field_tier") if k in unit},
             **({k: unit[k] for k in ("blocked", "reason", "bindings", "clarification_used") if k in unit}
                if unit.get("blocked") else {}),
         } for unit in original["units"]]
@@ -149,7 +161,7 @@ def coordinator_messages(public: dict[str, Any], observation: dict[str, Any],
     if "workspace" in current:
         original = current["workspace"]
         current["workspace"] = {k: original[k] for k in
-            ("certain_count", "possible_count", "units", "unit_count", "offset", "next_offset")}
+            ("certain_count", "possible_count", "units", "unit_count", "offset", "next_offset", "recommended_stage") if k in original}
         for key in ("output_obligations", "blocked_items"):
             if original[key]["count"]:
                 current["workspace"][key] = original[key]
@@ -188,14 +200,14 @@ def coordinator_messages(public: dict[str, Any], observation: dict[str, Any],
 def inspector_message(payload: dict[str, Any]) -> dict[str, Any]:
     """Keep complete source text and structural bindings."""
     def record(item: dict[str, Any]) -> dict[str, Any]:
-        return {k: item[k] for k in ("object_ref", "text", "kind", "source", "target",
+        return {k: item[k] for k in ("object_ref", "text", "field", "complete", "kind", "source", "target",
                                     "source_kind", "target_kind", "role") if k in item}
 
     result = {"unit_id": payload["unit_id"], "objects": [record(o) for o in payload["objects"]],
               "conditions": payload["conditions"]}
     if payload["context"]:
         result["context"] = [record(o) for o in payload["context"]]
-    for key in ("prior_rejection", "clarification"):
+    for key in ("prior_rejection", "clarification", "field_tier"):
         if key in payload:
             result[key] = payload[key]
     return result

@@ -107,7 +107,7 @@ def strict_request(model: str, effort: str, inputs: list[dict[str, Any]],
                   # unused action slots. Local typed validation still applies.
                   "strict": not issubclass(output_type, ExecutionAction), "parameters": strict_schema(output_type)}}],
               "tool_choice": {"type": "function", "function": {"name": TOOL_NAME}},
-              "max_tokens": max_output_tokens, "stream": False, "store": False,
+              "max_tokens": max_output_tokens, "temperature": 0, "stream": False, "store": False,
               "thinking": {"type": "disabled" if effort == "none" else "enabled"}}
     if effort != "none":
         result["reasoning_effort"] = effort
@@ -145,7 +145,7 @@ def structured_request(model: str, effort: str, inputs: list[dict[str, Any]],
     return {"model": model, "messages": inputs, "provider": routing(),
             "service_tier": "flex", "reasoning": {"effort": effort},
             "response_format": {"type": "json_schema", "json_schema": schema},
-            "max_tokens": max_output_tokens, "stream": False, "store": False}
+            "max_tokens": max_output_tokens, "temperature": 0, "stream": False, "store": False}
 
 
 def validate_response(response: dict[str, Any]) -> None:
@@ -263,7 +263,7 @@ class NativeProvider:
         elif wire is not None:
             response = await self.client.chat.completions.create(**{k: v for k, v in wire.items() if k != 'thinking'}, extra_body={'thinking': wire['thinking']})
         else:
-            response = await self.client.responses.create(model=self.model, input=payload, reasoning={'effort': self.reasoning_effort}, text={'format': response_format}, max_output_tokens=self.limits.max_output_tokens, store=False)
+            response = await self.client.responses.create(model=self.model, input=payload, reasoning={'effort': self.reasoning_effort}, text={'format': response_format}, max_output_tokens=self.limits.max_output_tokens, temperature=0, store=False)
         raw = response.model_dump(mode='json', warnings=False)
         usage = response.usage
         if usage is not None:

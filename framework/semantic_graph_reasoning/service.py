@@ -15,6 +15,7 @@ from semantic_graph_reasoning.context import (
     json_text,
     memory_records,
     page,
+    reading_tokens,
     update_memory,
 )
 from semantic_graph_reasoning.graph import Graph, GraphLimitError
@@ -65,7 +66,7 @@ class Solver:
         self._last_action: dict[str, Any] | None = None
         self._last_inspection: dict[str, Any] | None = None
         self._rejections: dict[str, dict[str, Any]] = {}
-        self._revision_request: dict[str, str] | None = None
+        self._revision_request: dict[str, Any] | None = None
         self._block_state: str | None = None
         self._block_reads: dict[str, dict[str, Any]] = {}
         self._block_errors: dict[str, dict[str, Any]] = {}
@@ -262,7 +263,10 @@ class Solver:
                 raise ValueError("revision unavailable or exhausted")
             if not action.query_evidence or action.query_evidence not in query:
                 raise ValueError("revision needs exact public-query evidence of the interpretation issue")
-            self._revision_request = {"reason": action.reason, "query_evidence": action.query_evidence}
+            if not self.workspace.binding_conflicts:
+                raise ValueError("revision needs a reported schema, direction or entity-binding conflict; failed semantic checks are not a conflict")
+            self._revision_request = {"reason": action.reason, "query_evidence": action.query_evidence,
+                                      "conflicts": dict(self.workspace.binding_conflicts)}
             return {"revision_requested": True, "workspace": self.workspace.observe()}
         if action.action == "lookup":
             if self.workspace is not None and self._revision_request is None:
@@ -285,8 +289,23 @@ class Solver:
                     raise ValueError("revision needs exact public-query evidence of the interpretation issue")
                 if action.plan == self.workspace.plan:
                     raise ValueError("inspection order changes do not justify a new plan version")
+                if self._revision_request is None or not self.workspace.binding_conflicts:
+                    raise ValueError("request a revision backed by a binding conflict first")
+                previous = self.workspace.plan
+                if (action.plan.conditions != previous.conditions or action.plan.formula != previous.formula
+                        or action.plan.output_all_assignments != previous.output_all_assignments
+                        or action.plan.anchor_role != previous.anchor_role):
+                    raise ValueError("binding revision must preserve semantic conditions, formula, public anchor role and output requirements")
+                structural_fields = ("operation", "symmetric_role_groups", "hop_count", "path_target_role", "core_mode", "core_k")
+                old_relations = {(r.name, frozenset((r.source, r.target))) for r in previous.relations}
+                new_relations = {(r.name, frozenset((r.source, r.target))) for r in action.plan.relations}
+                if (any(getattr(action.plan, field) != getattr(previous, field) for field in structural_fields)
+                        or [r.name for r in action.plan.roles] != [r.name for r in previous.roles]
+                        or old_relations != new_relations):
+                    raise ValueError("binding revision cannot remove or relax the query's structural pattern")
             version = 1 if self.workspace is None else self.workspace.version + 1
             replacement = self._build_workspace(action.plan, query, anchors, version)
+            reused = replacement.reuse_judgments(self.workspace) if self.workspace is not None else 0
             if self.workspace is not None:
                 self.revisions += 1
             self.workspace = replacement
@@ -295,7 +314,8 @@ class Solver:
             self._revision_request = None
             self._plan_reason = action.reason
             return {"plan_accepted": True, "version": version, "workspace": replacement.observe(),
-                    "all_public_anchors_enumerated": list(anchors), "previous_receipts_reused": False}
+                    "all_public_anchors_enumerated": list(anchors), "reused_judgments": reused,
+                    "previous_receipts_reused": reused > 0}
         if action.action == "view" and action.view_kind in {"history", "memory"}:
             if action.view_unit_id is not None:
                 raise ValueError("history/memory view does not take a unit ID")
@@ -321,11 +341,19 @@ class Solver:
             return {"completion_ready": True}
         if not action.unit_ids or len(set(action.unit_ids)) != len(action.unit_ids):
             raise ValueError("inspect needs a nonempty ordered list of distinct unit IDs")
+        if len(action.unit_ids) > self.limits.max_reading_groups:
+            raise ValueError("an investigation stage contains at most four reading groups")
         if any(unit_id not in workspace.units for unit_id in action.unit_ids):
             raise ValueError("inspection contains an unknown or stale-version unit")
         if any(unit_id in workspace.blocked for unit_id in action.unit_ids):
             if len(action.unit_ids) != 1 or not action.reason.strip():
                 raise ValueError("cannot rewrite blocked evidence: inspect ONE blocked unit with clarification in reason")
+        else:
+            live = set(workspace.state()["live_atoms"])
+            active = [u for u in action.unit_ids if live.intersection(workspace.units[u]["atom_ids"])]
+            expected = workspace.observe()["recommended_stage"][:len(active)]
+            if active != expected:
+                raise ValueError("inspect must follow recommended_stage: deferred expansion, decisive priority, then coverage")
         before = workspace.state()
         unresolved_before = {a for a, value in workspace.values.items() if value is None}
         progress: dict[str, Any] = {"version": workspace.version, "requested_unit_ids": list(action.unit_ids),
@@ -353,6 +381,8 @@ class Solver:
                         payload["prior_rejection"] = self._rejections[unit_id]
                     visible = self._inspection_message(payload)
                     instructions, modules = inspector_prompt(visible)
+                    if reading_tokens({"instructions": instructions, "content": visible}) > self.limits.reading_context_tokens:
+                        raise ValueError("reading group exceeds 8192 tokens; source text cannot be truncated")
                     report = await self.provider.request("inspector", instructions,
                                                         [{"role": "user", "content": json_text(visible)}],
                                                         InspectionReport)

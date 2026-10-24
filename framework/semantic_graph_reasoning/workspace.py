@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from semantic_graph_reasoning.context import page
+from semantic_graph_reasoning.context import inspector_message, page, reading_tokens
 from semantic_graph_reasoning.graph import Assignment, Graph
 from semantic_graph_reasoning.models import (
     Condition,
@@ -18,6 +18,7 @@ from semantic_graph_reasoning.models import (
     Plan,
     WholeTarget,
 )
+from semantic_graph_reasoning.prompts import inspector_prompt
 
 
 def identity_key(value: Any) -> str:
@@ -197,6 +198,11 @@ class Workspace:
         self._atom_keys: dict[str, str] = {}
         self._unit_keys: dict[str, str] = {}
         self._role_bindings: dict[str, list[dict[str, Any]]] = {}
+        self.field_tiers: dict[str, str] = {}
+        self.deferred: set[str] = set()
+        self.judgment_records: dict[str, dict[str, Any]] = {}
+        self.binding_conflicts: dict[str, str] = {}
+        self.reading_history: list[dict[str, Any]] = []
         self.expressions: list[Expr] = []
         self.candidates: dict[str, list[int]] = {}
         for index, assignment in enumerate(assignments):
@@ -211,6 +217,92 @@ class Workspace:
             needed = set().union(*(self.expressions[index].pending(self.values) for index in indices))
             for atom_id in needed:
                 self.atoms[atom_id]["candidate_ids"].append(self.candidate_ids[key])
+        self._partition_reading_groups()
+
+    def _partition_reading_groups(self) -> None:
+        """Split compatible questions at question boundaries without cutting source text."""
+        original = list(self.units.values())
+        self.units = {}
+        for unit in original:
+            chunks: list[list[str]] = []
+            for atom_id in unit["atom_ids"]:
+                records = self._atom_sources(atom_id, "summary")
+                self.field_tiers[atom_id] = "summary" if any(not r["complete"] for r in records) else "full"
+                proposed = (chunks[-1] + [atom_id] if chunks and
+                            self.field_tiers[chunks[-1][0]] == self.field_tiers[atom_id] else [atom_id])
+                trial = self._unit_from_atoms(unit["unit_id"], proposed)
+                payload = self._inspection_payload(trial, proposed, "full")
+                if self._payload_tokens(payload) > self.limits.reading_context_tokens:
+                    if len(proposed) == 1:
+                        raise ValueError("one semantic question exceeds the reading-context token limit; no source text was truncated")
+                    proposed = [atom_id]
+                    trial = self._unit_from_atoms(unit["unit_id"], proposed)
+                    if self._payload_tokens(self._inspection_payload(trial, proposed, "full")) > self.limits.reading_context_tokens:
+                        raise ValueError("one semantic question exceeds the reading-context token limit; no source text was truncated")
+                if chunks and proposed[:-1] == chunks[-1]:
+                    chunks[-1] = proposed
+                else:
+                    chunks.append(proposed)
+            for index, atoms in enumerate(chunks):
+                identifier = unit["unit_id"] if index == 0 else f"{unit['unit_id']}:part{index + 1}"
+                self.units[identifier] = self._unit_from_atoms(identifier, atoms)
+
+    def _unit_from_atoms(self, identifier: str, atoms: list[str]) -> dict[str, Any]:
+        subjects = list(dict.fromkeys(ref for a in atoms for ref in self.atoms[a]["subjects"]))
+        context = list(dict.fromkeys(pair for a in atoms for pair in self.atoms[a]["context"]))
+        return {"unit_id": identifier, "subjects": subjects, "context": context, "atom_ids": atoms}
+
+    @staticmethod
+    def _payload_tokens(payload: dict[str, Any]) -> int:
+        visible = inspector_message(payload)
+        instructions, _ = inspector_prompt(visible)
+        return reading_tokens({"instructions": instructions, "content": visible})
+
+    def _atom_sources(self, atom_id: str, tier: str) -> list[dict[str, Any]]:
+        atom = self.atoms[atom_id]
+        refs = list(dict.fromkeys(atom["subjects"] + [f"node:{node}" for _, node in atom["context"]]))
+        return [self._record(ref, tier) for ref in refs]
+
+    def reuse_judgments(self, previous: Workspace) -> int:
+        """Retain only unchanged role-bound questions with sufficient, unchanged evidence."""
+        reused = 0
+        for key, atom_id in self._atom_keys.items():
+            old_id = previous._atom_keys.get(key)
+            record = previous.judgment_records.get(old_id or "")
+            if old_id is None or previous.values[old_id] is None or record is None:
+                continue
+            if record["full_sources"] != self._atom_sources(atom_id, "full"):
+                continue
+            tier = record["tier"]
+            if record["sources"] != self._atom_sources(atom_id, tier):
+                continue
+            self.values[atom_id] = previous.values[old_id]
+            self.field_tiers[atom_id] = tier
+            self.judgment_records[atom_id] = record
+            reused += 1
+        return reused
+
+    def question_priorities(self) -> dict[str, dict[str, Any]]:
+        state = self.state()
+        unresolved = []
+        for key, indices in self.candidates.items():
+            if self.candidate_ids[key] not in state["certain"] and self.candidate_ids[key] in state["possible"]:
+                unresolved.append(Expr(children=tuple(self.expressions[i] for i in indices)))
+        result = {}
+        for atom_id in state["live_atoms"]:
+            affected = [expr for expr in unresolved if atom_id in expr.pending(self.values)]
+            decisive = []
+            for outcome in (False, True):
+                trial = {**self.values, atom_id: outcome}
+                decisive.append(sum(low == high for low, high in (expr.bounds(trial) for expr in affected)))
+            result[atom_id] = {"coverage": len(affected), "decisive_false": decisive[0],
+                               "decisive_true": decisive[1], "deferred_expansion": atom_id in self.deferred}
+        return result
+
+    @staticmethod
+    def _priority_key(value: dict[str, Any]) -> tuple[int, int, int, int]:
+        total = int(value["decisive_true"]) + int(value["decisive_false"])
+        return (-int(value["deferred_expansion"]), -int(total > 0), -total, -int(value["coverage"]))
 
     def _candidate_key(self, assignment: Assignment) -> str:
         if self.plan.operation in {"anchored_core", "shortest_paths"}:
@@ -250,7 +342,11 @@ class Workspace:
                                        "phrase": condition.phrase, "subjects": subjects,
                                        "context": context}
                 self.values[atom_id] = None
-                unit_key = identity_key([subjects, context, "text"])
+                compatibility: Any = subjects
+                if target_kind == "edge" and len(subjects) == 1:
+                    edge = identifiers_group[0]
+                    compatibility = ["parallel_records", int(self.graph.sources[edge]), int(self.graph.targets[edge])]
+                unit_key = identity_key([compatibility, context, "text"])
                 if unit_key not in self._unit_keys:
                     unit_id = f"v{self.version}:u{len(self.units) + 1}"
                     self._unit_keys[unit_key] = unit_id
@@ -313,25 +409,30 @@ class Workspace:
     def observe(self, offset: int = 0) -> dict[str, Any]:
         state = self.state()
         live = set(state["live_atoms"])
+        priorities = self.question_priorities()
         units = []
         for unit in self.units.values():
-            if unit["unit_id"] in self.receipts and unit["unit_id"] not in self.blocked:
-                continue
             pending = set(unit["atom_ids"]) & live
             if not pending:
                 continue
             candidate_ids = sorted({c for atom in pending for c in self.atoms[atom]["candidate_ids"]})
+            priority = min((priorities[a] for a in pending), key=self._priority_key)
             units.append({**unit, "conditions": [{"atom_id": a, "condition_id": self.atoms[a]["condition_id"]}
                                                  for a in unit["atom_ids"]
                                                  if unit["unit_id"] not in state["blocked_items"] or a in pending],
                           "dependent_candidates": candidate_ids,
+                           **priority,
+                           "field_tier": "full" if any(self.field_tiers[a] == "full" for a in pending) else "summary",
                           "estimated_text_characters": sum(len(self._record(ref)["text"]) for ref in unit["subjects"]),
                           **({"blocked": True, "reason": state["blocked_items"][unit["unit_id"]],
                               "bindings": [{"atom_id": a, "role_bindings": self._role_bindings[a]}
                                            for a in unit["atom_ids"] if a in pending],
                               **({"clarification_used": True} if unit["unit_id"] in self.clarifications else {})}
                              if unit["unit_id"] in state["blocked_items"] else {})})
+        units.sort(key=self._priority_key)
+        stage = [u["unit_id"] for u in units if not u.get("blocked")][:self.limits.max_reading_groups]
         return {"version": self.version, "condition_definitions": [c.model_dump(mode="json") for c in self.plan.conditions],
+                "recommended_stage": stage,
                 "candidate_count": len(self.candidates),
                 "assignment_count": len(self.assignments), "certain_count": len(state["certain"]),
                 "possible_count": len(state["possible"]), "unresolved_count": len(state["possible"]) - len(state["certain"]),
@@ -377,9 +478,9 @@ class Workspace:
                 "conditions": page([{"atom_id": a, "condition_id": self.atoms[a]["condition_id"]}
                                     for a in unit["atom_ids"]], offset, size)}
 
-    def _record(self, ref: str) -> dict[str, Any]:
+    def _record(self, ref: str, tier: str = "full") -> dict[str, Any]:
         kind, identifier = ref.split(":")
-        return self.graph.evidence(kind, int(identifier))
+        return self.graph.evidence(kind, int(identifier), tier=tier)
 
     @staticmethod
     def _target_kind(condition: Condition) -> str:
@@ -389,20 +490,26 @@ class Workspace:
 
     def inspection_input(self, unit_id: str) -> dict[str, Any]:
         unit = self.units[unit_id]
-        objects = [self._record(ref) for ref in unit["subjects"]]
-        context = [{"role": role, **self._record(f"node:{node}")} for role, node in unit["context"]]
+        pending = [a for a in unit["atom_ids"] if self.values[a] is None]
+        tier = "full" if any(self.field_tiers[a] == "full" for a in pending) else "summary"
+        return self._inspection_payload(unit, pending, tier)
+
+    def _inspection_payload(self, unit: dict[str, Any], atoms: list[str], tier: str) -> dict[str, Any]:
+        selected = self._unit_from_atoms(unit["unit_id"], atoms)
+        objects = [self._record(ref, tier) for ref in selected["subjects"]]
+        context = [{"role": role, **self._record(f"node:{node}", tier)} for role, node in selected["context"]]
         contracts = {c.name: {"target_kind": self._target_kind(c), "target": c.target.model_dump(mode="json"),
                              "relation_roles": [r.model_dump(mode="json") for r in self.plan.relations
                                                 if isinstance(c.target, EdgeTarget) and r.name in c.target.relation_roles],
                              "mode": c.mode}
                      for c in self.plan.conditions}
-        return {"version": self.version, "unit_id": unit_id, "objects": objects, "context": context,
+        return {"version": self.version, "unit_id": unit["unit_id"], "objects": objects, "context": context, "field_tier": tier,
                 "graph_context": {"domain": self.graph.domain, "operation": self.plan.operation,
                                   "structural_bindings_established_by_runtime": True},
                 "conditions": [{"atom_id": a, "phrase": self.atoms[a]["phrase"],
                                 "subjects": self.atoms[a]["subjects"],
                                 "target_contract": contracts[self.atoms[a]["condition_id"]]}
-                               for a in unit["atom_ids"]]}
+                               for a in atoms]}
 
     def begin_clarification(self, unit_id: str, reason: str) -> dict[str, Any]:
         """Reserve one fresh delegation for live unknown atoms; retain all prior receipts."""
@@ -433,6 +540,7 @@ class Workspace:
             if output.judgments:
                 raise ReceiptFormatError("binding issue must not commit semantic judgments")
             self.blocked[output.unit_id] = output.binding_issue
+            self.binding_conflicts[output.unit_id] = output.binding_issue
             if recovery is not None:
                 recovery["output"] = output.model_dump(mode="json")
             return
@@ -449,7 +557,8 @@ class Workspace:
             if judgment.status in {"established", "explicitly_false"} and not judgment.evidence:
                 raise ReceiptFormatError("established/refuted claims need literal source quotes")
             for item in judgment.evidence:
-                if item.object_ref not in records or not item.quote or item.quote not in records[item.object_ref]["text"]:
+                scope = {record["object_ref"] for record in self._atom_sources(judgment.atom_id, input_data["field_tier"])}
+                if item.object_ref not in scope or item.object_ref not in records or not item.quote or item.quote not in records[item.object_ref]["text"]:
                     raise QuoteValidationError(judgment.atom_id, item.object_ref, item.quote)
         # Validate the entire response before committing any state.
         if recovery is not None:
@@ -457,10 +566,26 @@ class Workspace:
             self.blocked.pop(output.unit_id, None)
         else:
             self.receipts[output.unit_id] = {"input": input_data, "output": output.model_dump(mode="json")}
+        self.reading_history.append({"input": input_data, "output": output.model_dump(mode="json")})
+        expanded = False
         for judgment in output.judgments:
+            atom_id = judgment.atom_id
+            sources = self._atom_sources(atom_id, input_data["field_tier"])
+            if judgment.status in {"not_established", "uncertain"} and any(not r["complete"] for r in sources):
+                self.values[atom_id] = None
+                self.field_tiers[atom_id] = "full"
+                self.deferred.add(atom_id)
+                expanded = True
+                continue
             self.values[judgment.atom_id] = (True if judgment.status == "established" else
                                             None if judgment.status == "uncertain" else False)
-        if any(j.status == "uncertain" for j in output.judgments):
+            self.deferred.discard(atom_id)
+            if self.values[atom_id] is not None:
+                self.judgment_records[atom_id] = {"tier": input_data["field_tier"], "sources": sources,
+                    "full_sources": self._atom_sources(atom_id, "full"), "judgment": judgment.model_dump(mode="json")}
+        if expanded:
+            self.receipts.pop(output.unit_id, None)
+        if any(j.status == "uncertain" and j.atom_id not in self.deferred for j in output.judgments):
             self.blocked[output.unit_id] = "Inspector uncertainty; no truth value committed for uncertain atoms"
 
     def answer(self) -> dict[str, Any]:

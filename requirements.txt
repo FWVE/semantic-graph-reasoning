@@ -5,3 +5,4 @@ python-dotenv==1.2.2
 networkx==3.6.1
 numpy==2.4.6
 torch==2.5.1
+tiktoken==0.13.0

@@ -184,6 +184,8 @@ class InspectionReport(Record):
 
 
 class ExecutionLimits(Record):
+    max_reading_groups: int = Field(default=4, ge=1, le=4)
+    reading_context_tokens: int = Field(default=8192, ge=1, le=8192)
     max_calls: int | None = Field(default=160, ge=1)
     max_tokens: int | None = Field(default=400_000, ge=1)
     provider_seconds: int = 180
