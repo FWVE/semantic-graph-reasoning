@@ -10,7 +10,7 @@ from typing import Any
 import networkx as nx  # type: ignore[import-untyped]
 import numpy as np
 
-from semantic_graph_reasoning.agentic.models import ExecutionLimits, Plan
+from semantic_graph_reasoning.models import ExecutionLimits, Plan
 
 
 class GraphLimitError(RuntimeError):
@@ -30,7 +30,7 @@ class Graph:
     def __init__(
         self, *, node_count: int, sources: Any, targets: Any,
         text: Callable[[str, int], str], kind: Callable[[int], str],
-        name: Callable[[int], str], domain: str, source_hash: str,
+        name: Callable[[int], str], domain: str,
         original_edge_ids: Any = None, node_kinds: tuple[str, ...] = ("paper",),
     ) -> None:
         self.node_count = node_count
@@ -40,7 +40,7 @@ class Graph:
         self.original_ids = (np.arange(self.edge_count) if original_edge_ids is None
                              else np.asarray(original_edge_ids, dtype=np.int64))
         self._text, self.kind, self.name = text, kind, name
-        self.domain, self.source_hash = domain, source_hash
+        self.domain = domain
         self.node_kinds = node_kinds
         self._out_order = np.argsort(self.sources, kind="stable")
         self._in_order = np.argsort(self.targets, kind="stable")
@@ -74,7 +74,7 @@ class Graph:
             raise ValueError("evidence object outside graph")
         text = self._text(kind, identifier)
         value: dict[str, Any] = {"object_ref": f"{kind}:{identifier}", "field": "text",
-                                 "text": text, "source_sha256": self.source_hash}
+                                 "text": text, "source_graph": self.domain}
         if kind == "node":
             value["kind"] = self.kind(identifier)
         else:

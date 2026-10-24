@@ -1,15 +1,14 @@
 """Query-version-local dependency propagation and complete output construction."""
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from dataclasses import dataclass
 from typing import Any
 
-from semantic_graph_reasoning.agentic.context import page
-from semantic_graph_reasoning.agentic.graph import Assignment, Graph
-from semantic_graph_reasoning.agentic.models import (
+from semantic_graph_reasoning.context import page
+from semantic_graph_reasoning.graph import Assignment, Graph
+from semantic_graph_reasoning.models import (
     Condition,
     EdgeTarget,
     ExecutionLimits,
@@ -21,9 +20,9 @@ from semantic_graph_reasoning.agentic.models import (
 )
 
 
-def digest(value: Any) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
-                                     separators=(",", ":")).encode()).hexdigest()
+def identity_key(value: Any) -> str:
+    """Compare complete values within this query's graph and plan version."""
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
 
 class ReceiptFormatError(ValueError):
@@ -215,13 +214,13 @@ class Workspace:
 
     def _candidate_key(self, assignment: Assignment) -> str:
         if self.plan.operation in {"anchored_core", "shortest_paths"}:
-            return digest([assignment.anchor, assignment.nodes])
+            return identity_key([assignment.anchor, assignment.nodes])
         mapping: dict[str, Any] = dict(assignment.roles)
         for group in self.plan.symmetric_role_groups:
             ids = sorted(mapping[role] for role in group.roles)
             for role, value in zip(sorted(group.roles), ids, strict=True):
                 mapping[role] = value
-        return digest([assignment.anchor, mapping])
+        return identity_key([assignment.anchor, mapping])
 
     def _condition(self, condition: Condition, assignment: Assignment) -> Expr:
         target = condition.target
@@ -241,17 +240,17 @@ class Workspace:
         children = []
         for identifiers_group in groups:
             subjects = [f"{target_kind}:{n}" for n in identifiers_group]
-            # Equality includes query condition, binding order, context, source field and source snapshot.
-            identity = [condition.name, condition.phrase, subjects, context, "text", self.graph.source_hash]
-            key = digest(identity)
+            # Equality includes query condition, binding order, context, source field within this workspace.
+            identity = [condition.name, condition.phrase, subjects, context, "text"]
+            key = identity_key(identity)
             if key not in self._atom_keys:
                 atom_id = f"v{self.version}:a{len(self.atoms) + 1}"
                 self._atom_keys[key] = atom_id
                 self.atoms[atom_id] = {"atom_id": atom_id, "condition_id": condition.name,
                                        "phrase": condition.phrase, "subjects": subjects,
-                                       "context": context, "identity_sha256": key}
+                                       "context": context}
                 self.values[atom_id] = None
-                unit_key = digest([subjects, context, "text", self.graph.source_hash])
+                unit_key = identity_key([subjects, context, "text"])
                 if unit_key not in self._unit_keys:
                     unit_id = f"v{self.version}:u{len(self.units) + 1}"
                     self._unit_keys[unit_key] = unit_id
@@ -488,8 +487,6 @@ class Workspace:
         return {"status": "complete", "outcome": "answers" if answers else "no_solution", "answers": answers,
                 "certificate": {"version": self.version, "structural_complete": True,
                                 "membership_complete": True, "output_ready": True, "no_blocking_conflict": True,
-                                "plan_sha256": digest(self.plan.model_dump(mode="json")),
-                                "source_sha256": self.graph.source_hash,
                                 "correctness_is_conditional_on_plan_grounding_and_receipts": True}}
 
     def snapshot(self) -> dict[str, Any]:

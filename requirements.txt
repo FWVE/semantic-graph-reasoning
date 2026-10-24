@@ -1,9 +1,7 @@
 # Python 3.11
 openai==2.46.0
 pydantic==2.13.4
-pydantic-settings==2.14.2
 python-dotenv==1.2.2
 networkx==3.6.1
 numpy==2.4.6
 torch==2.5.1
-torch-geometric==2.8.0

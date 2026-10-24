@@ -3,13 +3,11 @@ from __future__ import annotations
 
 import asyncio
 import itertools
-import time
-from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from semantic_graph_reasoning.agentic.context import (
+from semantic_graph_reasoning.context import (
     compact_feedback,
     coordinator_messages,
     history_entries,
@@ -19,29 +17,28 @@ from semantic_graph_reasoning.agentic.context import (
     page,
     update_memory,
 )
-from semantic_graph_reasoning.agentic.graph import Graph, GraphLimitError
-from semantic_graph_reasoning.agentic.models import (
+from semantic_graph_reasoning.graph import Graph, GraphLimitError
+from semantic_graph_reasoning.models import (
     Action,
     ExecutionAction,
     ExecutionLimits,
     InspectionReport,
     Plan,
 )
-from semantic_graph_reasoning.agentic.prompts import GUIDES, coordinator_prompt, inspector_prompt
-from semantic_graph_reasoning.agentic.provider import (
+from semantic_graph_reasoning.prompts import GUIDES, coordinator_prompt, inspector_prompt
+from semantic_graph_reasoning.provider import (
     ModelOutputError,
     Provider,
     QueryBudgetError,
-    write_json,
+    safe_message,
 )
-from semantic_graph_reasoning.agentic.workspace import (
+from semantic_graph_reasoning.workspace import (
     QuoteValidationError,
     ReceiptFormatError,
     Workspace,
-    digest,
+    identity_key,
     validate_plan,
 )
-from semantic_graph_reasoning.logging_utils import redact_text
 
 
 class InspectionStageError(ValueError):
@@ -55,10 +52,8 @@ class InspectionStageError(ValueError):
 class Solver:
     runtime_name = "core"
 
-    def __init__(self, graph: Graph, provider: Provider, limits: ExecutionLimits,
-                 output_dir: Path | None = None) -> None:
+    def __init__(self, graph: Graph, provider: Provider, limits: ExecutionLimits) -> None:
         self.graph, self.provider, self.limits = graph, provider, limits
-        self.output_dir = output_dir
         self.workspace: Workspace | None = None
         self.events: list[dict[str, Any]] = []
         self.issues: list[dict[str, Any]] = []
@@ -71,7 +66,6 @@ class Solver:
         self._last_inspection: dict[str, Any] | None = None
         self._rejections: dict[str, dict[str, Any]] = {}
         self._revision_request: dict[str, str] | None = None
-        self.context_routes: list[dict[str, Any]] = []
         self._block_state: str | None = None
         self._block_reads: dict[str, dict[str, Any]] = {}
         self._block_errors: dict[str, dict[str, Any]] = {}
@@ -105,58 +99,27 @@ class Solver:
     def _block_key(self) -> str | None:
         if self.workspace is None or not self.workspace.state()["blocked_items"]:
             return None
-        return digest([self.workspace.version, self.workspace.values, self.workspace.state()["blocked_items"],
+        return identity_key([self.workspace.version, self.workspace.values, self.workspace.state()["blocked_items"],
                        list(self.workspace.clarifications)])
 
-    def memory_snapshot(self) -> dict[str, Any]:
-        return {"plan_version": self.workspace.version if self.workspace else None,
-                "accepted_plan_reason": self._plan_reason, "notes": self._memory,
-                "last_action": self._last_action, "last_inspection": self._last_inspection,
-                "inspection_rejections": self._rejections, "revision_request": self._revision_request,
-                **({"block_diagnostics": {"reads": list(self._block_reads.values()),
-                     "failed_actions": list(self._block_errors.values()), "repeated_actions": self._block_repeats}}
-                   if self._block_state else {})}
-
-    def _save(self) -> None:
-        if self.output_dir is not None:
-            write_json(self.output_dir / "events.json", self.events)
-            write_json(self.output_dir / "reasoning_memory.json", self.memory_snapshot())
-            write_json(self.output_dir / "context_routes.json", self.context_routes)
-            if self.workspace is not None:
-                write_json(self.output_dir / "workspace.json", self.workspace.snapshot())
-
     async def run(self, query: str, anchors: list[int], schema: dict[str, Any]) -> dict[str, Any]:
-        started = time.monotonic()
         public: dict[str, Any] = {"query": query, "public_anchor_node_ids": anchors,
                                   "graph_schema": schema, "limits": self.limits.model_dump(mode="json")}
         observation: dict[str, Any] = {"instruction": "Interpret the public question and request a graph operation."}
         result: dict[str, Any]
         try:
             public["public_anchor_kinds"] = sorted({self.graph.kind(n) for n in anchors if 0 <= n < self.graph.node_count})
-            if self.output_dir is not None:
-                write_json(self.output_dir / "public_input.json", {**public, **observation})
             async with asyncio.timeout(self.limits.query_seconds):
                 result = await self._loop(query, anchors, observation, public)
         except (Exception, asyncio.CancelledError) as error:
-            # This application boundary settles cancelled attempts in the persistent ledger.
             # No further model request or answer synthesis follows cancellation.
-            result = {"status": "unresolved", "answers": None, "reason": redact_text(str(error))[:2000],
+            result = {"status": "unresolved", "answers": None, "reason": safe_message(str(error))[:2000],
                       "error_type": type(error).__name__,
                       "failure_scope": "cancelled" if isinstance(error, asyncio.CancelledError) else
                       "query" if isinstance(error, (ValueError, ModelOutputError, QueryBudgetError,
-                                                   GraphLimitError, TimeoutError)) else "batch"}
+                                                   GraphLimitError, TimeoutError)) else "runtime"}
             self.issues.append({"stage": "execution", "error_type": type(error).__name__,
                                 "error": result["reason"]})
-        result["runtime"] = self.runtime_name
-        self._save()
-        result["audit"] = {"protocol_valid": not self.issues,
-                            "handoff_eligible": not self.issues and result["status"] == "complete",
-                            "issues": self.issues, "provider_calls": self.provider.calls,
-                            "provider_tokens": self.provider.tokens, "seconds": time.monotonic() - started,
-                            "plan_revisions": self.revisions,
-                            "gold_or_private_candidates_loaded": False}
-        if self.output_dir is not None:
-            write_json(self.output_dir / "result.json", result)
         return result
 
     async def _loop(self, query: str, anchors: list[int],
@@ -184,7 +147,6 @@ class Solver:
             if self.workspace is not None and current.get("workspace") is None:
                 current["workspace"] = self.workspace.observe()
             context, instructions, modules, output_type = self._coordinator_input(public, current)
-            self.context_routes.append({"call": self.provider.calls + 1, "role": "coordinator", "modules": modules})
             action: Action | None = None
             try:
                 reply = await self.provider.request("coordinator", instructions, context, output_type)
@@ -225,7 +187,7 @@ class Solver:
                 detail = observation.get("detail", {})
                 readable = detail.get("kind") in {"unit", "dependencies", "receipt", "completion"}
                 has_items = any(isinstance(v, dict) and v.get("items") for v in detail.values())
-                read_key = digest(detail)
+                read_key = identity_key(detail)
                 fresh_read = readable and has_items and read_key not in self._block_reads
                 if fresh_read:
                     self._block_reads[read_key] = detail
@@ -234,13 +196,12 @@ class Solver:
                               "unit_ids": action.unit_ids if action else [],
                               "reason": action.reason if action else "",
                               "error": observation["action_error"]}
-                    self._block_errors[digest(failed)] = failed
+                    self._block_errors[identity_key(failed)] = failed
                 state = self.workspace.state()
                 live = set(state["live_atoms"])
                 only_blocked = all(u in state["blocked_items"] or not live.intersection(unit["atom_ids"])
                                    for u, unit in self.workspace.units.items())
                 self._block_repeats = (self._block_repeats + 1 if only_blocked and not fresh_read else 0)
-            self._save()
             if observation.get("unresolved"):
                 return {"status": "unresolved", "answers": None, "reason": observation["unresolved"]}
             if self._block_repeats >= 6:
@@ -327,9 +288,6 @@ class Solver:
             version = 1 if self.workspace is None else self.workspace.version + 1
             replacement = self._build_workspace(action.plan, query, anchors, version)
             if self.workspace is not None:
-                if self.output_dir is not None:
-                    write_json(self.output_dir / f"superseded_workspace_v{self.workspace.version}.json",
-                               self.workspace.snapshot())
                 self.revisions += 1
             self.workspace = replacement
             self._last_inspection = None
@@ -395,7 +353,6 @@ class Solver:
                         payload["prior_rejection"] = self._rejections[unit_id]
                     visible = self._inspection_message(payload)
                     instructions, modules = inspector_prompt(visible)
-                    self.context_routes.append({"call": self.provider.calls + 1, "role": "inspector", "modules": modules})
                     report = await self.provider.request("inspector", instructions,
                                                         [{"role": "user", "content": json_text(visible)}],
                                                         InspectionReport)
@@ -415,14 +372,11 @@ class Solver:
                         workspace.blocked[unit_id] = "Inspector output repair exhausted; no judgment accepted"
                         progress["failed_unit_id"] = unit_id
                         progress["blocked_unit_ids"].append(unit_id)
-                        self._save()
                         raise InspectionStageError(error, progress) from error
-                    self._save()
             if unit_id in workspace.receipts or (recovering and workspace.clarifications[unit_id].get("output", {}).get("judgments")):
                 progress["accepted_unit_ids"].append(unit_id)
             if unit_id in workspace.blocked:
                 progress["blocked_unit_ids"].append(unit_id)
-            self._save()
         after = workspace.state()
         return {"newly_confirmed": sorted(set(after["certain"]) - set(before["certain"])),
                 "newly_excluded": sorted(set(after["excluded"]) - set(before["excluded"])),

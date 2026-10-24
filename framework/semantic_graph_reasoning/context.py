@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from semantic_graph_reasoning.agentic.models import MemoryUpdate, Plan
+from semantic_graph_reasoning.models import MemoryUpdate, Plan
 
 SUMMARY_ITEMS = 3
 MEMORY_LIMITS = {"notes": 12, "updates_per_action": 4, "key_characters": 48, "text_characters": 600,
@@ -116,7 +116,7 @@ def coordinator_messages(public: dict[str, Any], observation: dict[str, Any],
                          notes: dict[str, Any] | None = None, plan_reason: str | None = None,
                          last_action: dict[str, Any] | None = None,
                          last_inspection: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-    """Explicit role/stage allowlists. Audit/configuration objects never flow through."""
+    """Keep each role and execution stage scoped to the fields it consumes."""
     planning = plan is None or "revision_request" in observation
     context: dict[str, Any] = {k: public[k] for k in ("query", "public_anchor_node_ids") if k in public}
     if planning:
@@ -186,7 +186,7 @@ def coordinator_messages(public: dict[str, Any], observation: dict[str, Any],
 
 
 def inspector_message(payload: dict[str, Any]) -> dict[str, Any]:
-    """Keep complete text and structural bindings; retain hashes only in receipts/audit."""
+    """Keep complete source text and structural bindings."""
     def record(item: dict[str, Any]) -> dict[str, Any]:
         return {k: item[k] for k in ("object_ref", "text", "kind", "source", "target",
                                     "source_kind", "target_kind", "role") if k in item}
