@@ -3,6 +3,8 @@
 A Coordinator–Inspector framework for reasoning over text-rich graphs, with
 **SemGraph-Bench: 450 queries across seven graphs and nine structural families**.
 
+More coming soon.
+
 ## Abstract
 
 Semantic Graph Reasoning combines graph computation with interpretation of node
